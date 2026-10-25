@@ -36,6 +36,7 @@ h1 .dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;backgrou
 @media (max-width:860px){.stage{height:clamp(380px,100vw,520px)}}
 .stage canvas{display:block;width:100%;height:100%;touch-action:none}
 .hud{position:absolute;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+@media (max-width:560px){.hud{top:auto;bottom:12px}}
 .hud span{background:rgba(255,255,255,.86);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--ink)}
 .tools3d{position:absolute;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .viewbtn{border:0;background:rgba(255,255,255,.9);font-size:13px;padding:6px 12px;border-radius:999px}
@@ -555,16 +556,22 @@ function gearGeometry(type){
 const GEO={L:gearGeometry('L'),M:gearGeometry('M'),S:gearGeometry('S')};
 const hubGeo=new THREE.CylinderGeometry(.34,.34,GT+.08,24); // raised hub ring
 const hubHole=new THREE.CylinderGeometry(.22,.22,GT+.1,6);
-const axleGeo=(h)=>new THREE.CylinderGeometry(.19,.19,h,16);
+// Shared assets: built once and reused on every rebuild, so placing parts never leaks memory
+const memo=(fn)=>{ const c=new Map(); return k=>{ if(!c.has(k)) c.set(k,fn(k)); return c.get(k); }; };
+const axleGeo=memo(h=>new THREE.CylinderGeometry(.19,.19,h,16));
+const SH={ cube:new THREE.BoxGeometry(1.9,1.9,1.9), axleCap:new THREE.CylinderGeometry(.27,.27,.16,16),
+  ring:new THREE.TorusGeometry(2.3,.07,10,96), propHub:new THREE.CylinderGeometry(.42,.48,.5,24), disc:new THREE.CircleGeometry(2.36,64),
+  hHub:new THREE.CylinderGeometry(.46,.46,.42,24), hArm:new THREE.BoxGeometry(2.0,.32,.56), hKnob:new THREE.CylinderGeometry(.36,.4,1.25,24),
+  hCap:new THREE.SphereGeometry(.36,20,12,0,Math.PI*2,0,Math.PI/2) };
 
-function barGeometry(n){
+const barGeometry=memo(n=>{
   const len=(n-1)*P+2*(4.2+1.0), w=BAR_D, sh=new THREE.Shape(), r=.12;
   sh.moveTo(-len/2+r,-w/2); sh.lineTo(len/2-r,-w/2); sh.quadraticCurveTo(len/2,-w/2,len/2,-w/2+r); sh.lineTo(len/2,w/2-r); sh.quadraticCurveTo(len/2,w/2,len/2-r,w/2);
   sh.lineTo(-len/2+r,w/2); sh.quadraticCurveTo(-len/2,w/2,-len/2,w/2-r); sh.lineTo(-len/2,-w/2+r); sh.quadraticCurveTo(-len/2,-w/2,-len/2+r,-w/2);
   for(let i=0;i<n;i++){ const h=new THREE.Path(); h.absarc((i-(n-1)/2)*P,0,.27,0,Math.PI*2,true); sh.holes.push(h); }
   const g=new THREE.ExtrudeGeometry(sh,{depth:BAR_H-0.08,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2,curveSegments:16});
   g.translate(0,0,-(BAR_H-0.08)/2); g.rotateX(-Math.PI/2); return {g,len};
-}
+});
 function bladeGeometry(){
   const s=new THREE.Shape(); s.moveTo(.3,-.14); s.quadraticCurveTo(1.25,-.5,2.18,-.1); s.quadraticCurveTo(2.25,0,2.18,.1); s.quadraticCurveTo(1.3,.34,.3,.14); s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:.04,bevelEnabled:false,curveSegments:12}); g.translate(0,0,-.02); g.rotateX(-Math.PI/2); return g;
@@ -573,31 +580,34 @@ const BLADE=bladeGeometry();
 const glowTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); const g=x.createRadialGradient(64,64,0,64,64,64);
   g.addColorStop(0,'rgba(255,250,200,.42)'); g.addColorStop(.35,'rgba(230,255,150,.2)'); g.addColorStop(1,'rgba(200,255,120,0)'); x.fillStyle=g; x.fillRect(0,0,128,128);
   const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
-function makeProp(){
+const propHubMat=plastic('#8CC63F');
+const blurMat=memo(i=>new THREE.MeshBasicMaterial({color:srgb('#9BD14A'),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+const glowMat=new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
+function makeProp(i){
   const grp=new THREE.Group(), spin=new THREE.Group(); grp.add(spin);
   for(let k=0;k<3;k++){ const pivot=new THREE.Group(); pivot.rotation.y=k*2*Math.PI/3; const b=new THREE.Mesh(BLADE,propMat); b.rotation.x=0.38; b.castShadow=true; pivot.add(b); spin.add(pivot); }
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.3,.07,10,96),ringMat); ring.rotation.x=Math.PI/2; ring.castShadow=true; spin.add(ring);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.42,.48,.5,24),plastic('#8CC63F')); hub.castShadow=true; spin.add(hub);
-  const blur=new THREE.Mesh(new THREE.CircleGeometry(2.36,64),new THREE.MeshBasicMaterial({color:srgb('#9BD14A'),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+  const ring=new THREE.Mesh(SH.ring,ringMat); ring.rotation.x=Math.PI/2; ring.castShadow=true; spin.add(ring);
+  const hub=new THREE.Mesh(SH.propHub,propHubMat); hub.castShadow=true; spin.add(hub);
+  const blur=new THREE.Mesh(SH.disc,blurMat(i));
   blur.rotation.x=-Math.PI/2; grp.add(blur);
-  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); glow.scale.set(6.5,6.5,1); glow.visible=false; grp.add(glow);
+  const glow=new THREE.Sprite(glowMat); glow.scale.set(6.5,6.5,1); glow.visible=false; grp.add(glow);
   grp.userData={spin,blur,glow,blades:spin.children.slice(0,3)}; return grp;
 }
 function setPropSpin(p,ang,rev,flying=false){ p.userData.spin.rotation.y=ang; const b=Math.min(1,rev/12);
   p.userData.glow.visible=flying; p.userData.blur.material.opacity=(flying?.6:.32)*b; propMat.opacity=0.9; p.userData.blades.forEach(pv=>pv.children[0].visible=b<0.85); }
 function makeHandle(){
   const g=new THREE.Group();
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.42,24),handleMat); g.add(hub);
-  const arm=new THREE.Mesh(new THREE.BoxGeometry(2.0,.32,.56),handleMat); arm.position.x=1.0; g.add(arm);
-  const knob=new THREE.Mesh(new THREE.CylinderGeometry(.36,.4,1.25,24),knobMat); knob.position.set(1.95,.62,0); g.add(knob);
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(.36,20,12,0,Math.PI*2,0,Math.PI/2),knobMat); cap.position.set(1.95,1.24,0); g.add(cap);
+  const hub=new THREE.Mesh(SH.hHub,handleMat); g.add(hub);
+  const arm=new THREE.Mesh(SH.hArm,handleMat); arm.position.x=1.0; g.add(arm);
+  const knob=new THREE.Mesh(SH.hKnob,knobMat); knob.position.set(1.95,.62,0); g.add(knob);
+  const cap=new THREE.Mesh(SH.hCap,knobMat); cap.position.set(1.95,1.24,0); g.add(cap);
   g.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} }); return g;
 }
-function numberSprite(n){
+const numberMat=memo(n=>{
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle='rgba(255,255,255,.92)'; x.beginPath(); x.arc(32,32,26,0,7); x.fill();
   x.fillStyle='#1E2A17'; x.font='800 30px Nunito, sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(String(n),32,34);
-  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true})); s.scale.set(.62,.62,1); s.renderOrder=5; return s;
-}
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true}); });
+function numberSprite(n){ const s=new THREE.Sprite(numberMat(n)); s.scale.set(.62,.62,1); s.renderOrder=5; return s; }
 
 /* ---- dynamic rig ---- */
 const rig=new THREE.Group(); scene.add(rig);
@@ -612,7 +622,7 @@ function rebuild(){
   rig.clear(); parts={gears:[],axles:[],handle:null,props:{}};
   const {g,len}=barGeometry(N); const bar=new THREE.Mesh(g,barMat); bar.position.y=H0; bar.castShadow=bar.receiveShadow=true; rig.add(bar);
   // support towers of kit cubes at both ends
-  const cubeGeo=new THREE.BoxGeometry(CUBE,CUBE,CUBE);
+  const cubeGeo=SH.cube;
   for(const sgn of [-1,1]) for(let k=0;k<2;k++){ const c=new THREE.Mesh(cubeGeo,k===0?cubeMat:cubeMat2); c.position.set(sgn*(len/2-CUBE/2-.05),CUBE/2+k*CUBE,0); c.castShadow=c.receiveShadow=true; rig.add(c); }
   for(let i=0;i<N;i++){ const s=numberSprite(i+1); s.position.set(hx(i),H0-.05,BAR_D/2+.32); rig.add(s); }
   holes.forEach((h,i)=>{
@@ -621,11 +631,11 @@ function rebuild(){
       const m=new THREE.Mesh(GEO[t],gearMat[t]); m.castShadow=m.receiveShadow=true; grp.add(m);
       const hub=new THREE.Mesh(hubGeo,hubMat); hub.castShadow=true; grp.add(hub);
       grp.userData={i,L,pop:lastPlaced===i+':'+L?0:1}; rig.add(grp); parts.gears.push(grp); }
-    if(hasAxle(h)){ const top=h.prop?PROP_Y:AX_TOP, hgt=top-AX_BOT; const a=new THREE.Mesh(axleGeo(hgt),axleMat);
+    if(hasAxle(h)){ const top=h.prop?PROP_Y:AX_TOP, hgt=top-AX_BOT; const a=new THREE.Mesh(axleGeo(+hgt.toFixed(3)),axleMat);
       a.position.set(hx(i),AX_BOT+hgt/2,0); a.castShadow=true; a.userData={i}; rig.add(a); parts.axles.push(a);
-      const cap=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.16,16),axleMat); cap.position.set(0,-hgt/2,0); a.add(cap); }
+      const cap=new THREE.Mesh(SH.axleCap,axleMat); cap.position.set(0,-hgt/2,0); a.add(cap); }
     if(h.handle){ const hd=makeHandle(); hd.position.set(hx(i),yGear('front')+GT/2+.32,0); hd.userData={i,pop:lastPlaced===i+':handle'?0:1}; rig.add(hd); parts.handle=hd; }
-    if(h.prop){ const p=makeProp(); p.position.set(hx(i),PROP_Y,0); p.userData.i=i; p.userData.pop=lastPlaced===i+':prop'?0:1; scene.add(p); parts.props[i]=p; }
+    if(h.prop){ const p=makeProp(i); p.position.set(hx(i),PROP_Y,0); p.userData.i=i; p.userData.pop=lastPlaced===i+':prop'?0:1; scene.add(p); parts.props[i]=p; }
   });
   // remove orphan props from scene
   scene.children.filter(o=>o.userData&&o.userData.spin&&!Object.values(parts.props).includes(o)).forEach(o=>scene.remove(o));
