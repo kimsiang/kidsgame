@@ -136,7 +136,7 @@ aside{display:flex;flex-direction:column;gap:14px;min-width:0}
         </div>
         <div class="actions">
           <button class="big" id="hold" type="button">按住摇手柄</button>
-          <button class="ghost" id="bookBtn" type="button">书上的竹蜻蜓</button>
+          <button class="ghost" id="bookBtn" type="button">长杠杆竹蜻蜓</button>
           <button class="ghost" id="clearBtn" type="button">清空杠杆</button>
         </div>
       </div>
@@ -168,18 +168,18 @@ aside{display:flex;flex-direction:column;gap:14px;min-width:0}
   <section class="card learn">
     <div>
       <h3>为什么大带小会变快</h3>
-      <p>大齿轮转一圈，要推过 48 个齿。小齿轮只有 8 个齿，被推过 48 个齿就要转 6 圈。所以手摇 1 圈，小齿轮转 6 圈。</p>
+      <p>超大齿轮转一圈，要推过 48 个齿。小齿轮只有 8 个齿，被推过 48 个齿就要转 6 圈。所以手摇 1 圈，小齿轮转 6 圈。</p>
       <div class="formula">倍数 = 主动齿数 ÷ 被动齿数</div>
     </div>
     <div>
       <h3>多级变速，倍数相乘</h3>
-      <p>小齿轮和同一根长轴上另一面的齿轮一起转。这个齿轮再去带下一个小齿轮，就是第二级。两级 ×6 和 ×2，合起来就是 ×12。</p>
-      <div class="formula">×6 × ×2 = ×12</div>
+      <p>同一根长轴上下两面的齿轮一起转，这叫「接」。齿轮互相咬住叫「带」。超大带小 ×6，小接大，大带中 ×1.5，中接大，大带小 ×3。</p>
+      <div class="formula">×6 × ×1.5 × ×3 = ×27</div>
     </div>
     <div>
       <h3>怎样才能咬合</h3>
       <p>两个齿轮在同一面，中心要隔得刚刚好，齿才会咬住。太近会撞上，太远就碰不到。</p>
-      <div class="rule"><span class="chip">小+小 隔2孔</span><span class="chip">小+中 隔3孔</span><span class="chip">小+大 隔7孔</span><span class="chip">中+中 隔4孔</span><span class="chip">中+大 隔8孔</span><span class="chip">大+大 隔12孔</span></div>
+      <div class="rule"><span class="chip">小+小 隔2孔</span><span class="chip">小+中 隔3孔</span><span class="chip">小+大 隔4孔</span><span class="chip">小+超大 隔7孔</span><span class="chip">中+中 隔4孔</span><span class="chip">中+大 隔5孔</span><span class="chip">中+超大 隔8孔</span><span class="chip">大+大 隔6孔</span><span class="chip">大+超大 隔9孔</span><span class="chip">超大+超大 隔12孔</span></div>
     </div>
   </section>
 </div>
@@ -259,7 +259,7 @@ const api={
   get music(){return musicOn;}, get sfx(){return sfxOn;},
   setMusic(v){ musicOn=v; try{localStorage.setItem('zqt-music',v?'1':'0');}catch(e){} if(ac) musicBus.gain.setTargetAtTime(v?.3:0,ac.currentTime,.1); },
   setSfx(v){ sfxOn=v; try{localStorage.setItem('zqt-sfx',v?'1':'0');}catch(e){} if(ac) sfxBus.gain.setTargetAtTime(v?.75:0,ac.currentTime,.05); },
-  place(k){ if(!ac) return; const t=ac.currentTime, f={L:260,M:360,S:520,handle:440,prop:640}[k]||400;
+  place(k){ if(!ac) return; const t=ac.currentTime, f={X:190,L:260,M:360,S:520,handle:440,prop:640}[k]||400;
     tone(sfxBus,'triangle',f,t,.35,.07,.002); noise(sfxBus,t,.18,.03,'bandpass',2500,null,2); tone(sfxBus,'triangle',f*1.5,t+.07,.22,.08,.002); },
   pop(){ if(!ac) return; tone(sfxBus,'sine',520,ac.currentTime,.3,.14,.004,180); },
   warn(){ if(!ac) return; const t=ac.currentTime; tone(sfxBus,'square',233,t,.06,.1,.005); tone(sfxBus,'square',196,t+.12,.06,.14,.005); },
@@ -291,19 +291,20 @@ function say(html,kind=''){ if(kind==='warn'&&window.__sfx) __sfx.warn(); st.inn
 
 /* ================= game model (same rules as the kit) ================= */
 const TYPES={
-  L:{name:'大齿轮',T:48,r:6,color:'#E33A28',hl:'#FF8A6E'},
+  X:{name:'超大齿轮',T:48,r:6,color:'#E2650A',hl:'#FFC46B'},
+  L:{name:'大齿轮',T:24,r:3,color:'#E33A28',hl:'#FF8A6E'},
   M:{name:'中齿轮',T:16,r:2,color:'#2A78D6',hl:'#7DB5F2'},
   S:{name:'小齿轮',T:8, r:1,color:'#63B83C',hl:'#A9E07F'},
 };
-const BOOK_INV={L:1,M:1,S:4,axle:4,handle:1,prop:1};
-const LIMITS={L:[0,6],M:[0,6],S:[0,10],axle:[0,19],handle:[0,1],prop:[0,3]};
+const BOOK_INV={X:1,L:2,M:1,S:2,axle:4,handle:1,prop:1};
+const LIMITS={X:[0,4],L:[0,6],M:[0,6],S:[0,10],axle:[0,25],handle:[0,1],prop:[0,3]};
 const TAKEOFF=10, MAXH=3.2*2*Math.PI, AUTO=2.6*2*Math.PI, G=9.8;
 let inv={...BOOK_INV}, N=13, holes=[];
 let tool='crank', layer='front';
 let handOmega=0, theta=0, dragging=false, dragAccum=0, lastAng=0, holding=false;
 let flyers=[], best=0, sol=null, shake=0, lastPlaced=null;
-let goals={spin:false,x4:false,fly:false,m10:false,m30:false};
-try{ best=parseFloat(localStorage.getItem('zqt48-best'))||0; const g=JSON.parse(localStorage.getItem('zqt48-goals')||'null'); if(g) goals={...goals,...g}; }catch(e){}
+let goals={spin:false,x4:false,fly:false,m20:false,m50:false};
+try{ best=parseFloat(localStorage.getItem('zqt27-best'))||0; const g=JSON.parse(localStorage.getItem('zqt27-goals')||'null'); if(g) goals={...goals,...g}; }catch(e){}
 const emptyHole=()=>({front:null,back:null,handle:false,prop:false,ps:'on',wait:0,pa:0});
 function makeHoles(n){ holes=Array.from({length:n},emptyHole); N=n; }
 const hasAxle=h=>!!(h.front||h.back||h.handle||h.prop);
@@ -339,10 +340,11 @@ const fmt=x=>{const r=Math.round(x*100)/100; return Number.isInteger(r)?String(r
 function propRev(i){ return sol&&sol.rho[i]!==null&&!sol.jam ? Math.abs(sol.rho[i]*handOmega)/(2*Math.PI) : 0; }
 
 function loadBook(){
-  inv={...BOOK_INV}; makeHoles(13);
-  holes[11].front='L'; holes[11].handle=true;
-  holes[4].front='S'; holes[4].back='M';
-  holes[1].back='S'; holes[1].prop=true;
+  inv={...BOOK_INV}; makeHoles(21);
+  holes[18].front='X'; holes[18].handle=true;
+  holes[11].front='S'; holes[11].back='L';
+  holes[6].back='M';   holes[6].front='L';
+  holes[2].front='S';  holes[2].prop=true;
   flyers=[]; lastPlaced=null; changed();
 }
 
@@ -381,17 +383,17 @@ function release(){ let launched=0, weak=0;
 }
 
 /* ================= UI ================= */
-const GOALS=[['spin','让螺旋桨转起来'],['x4','加速倍数达到 ×4 以上'],['fly','让竹蜻蜓飞起来'],['m10','飞过 10 米'],['m30','飞过 30 米（提示：大齿轮多拿一个，做出 ×18 以上）']];
+const GOALS=[['spin','让螺旋桨转起来'],['x4','加速倍数达到 ×10 以上'],['fly','让竹蜻蜓飞起来'],['m20','飞过 20 米'],['m50','飞过 50 米（提示：用 ×27 的长杠杆，用手快速画圈摇）']];
 function renderGoals(){
   $('goals').innerHTML=GOALS.map(([k,t])=>`<li class="${goals[k]?'done':''}"><span class="tick">${goals[k]?'✓':''}</span><span>${t}</span></li>`).join('');
   $('best').textContent=best>0?`最高纪录：${best.toFixed(1)} 米`:'最高纪录：还没飞过'; }
-function saveGoals(){ try{localStorage.setItem('zqt48-goals',JSON.stringify(goals));}catch(e){} renderGoals(); }
+function saveGoals(){ try{localStorage.setItem('zqt27-goals',JSON.stringify(goals));}catch(e){} renderGoals(); }
 function firstProp(){ let k=-1; holes.forEach((h,i)=>{ if(k<0&&h.prop&&sol.rho[i]!==null) k=i; }); if(k<0) k=holes.findIndex(h=>h.prop); return k; }
 function updateMeters(){
   $('vHand').innerHTML=(Math.abs(handOmega)/(2*Math.PI)).toFixed(1)+'<small>转/秒</small>';
   const k=firstProp(), pr=k>=0?propRev(k):0;
   $('vProp').innerHTML=pr.toFixed(1)+'<small>转/秒</small>';
-  const MAXB=48, b=$('bar'); b.style.width=Math.min(100,pr/MAXB*100)+'%'; b.classList.toggle('go',pr>=TAKEOFF);
+  const MAXB=96, b=$('bar'); b.style.width=Math.min(100,pr/MAXB*100)+'%'; b.classList.toggle('go',pr>=TAKEOFF);
   $('tline').style.left=$('tlab').style.left=(TAKEOFF/MAXB*100)+'%';
 }
 function routeHTML(){
@@ -403,16 +405,16 @@ function routeHTML(){
   const stages=[]; let c=k; while(c!==sol.hi){ const v=sol.via[c]; stages.unshift(v); c=v.from; }
   const tot=Math.abs(sol.rho[k]); ratio.textContent='×'+fmt(tot);
   let html='<span class="chip">手柄</span>';
-  for(const s of stages){ const a=TYPES[s.g1],b=TYPES[s.g2]; html+=`<span class="arrow">→</span><span class="chip">${a.name[0]}${a.T}齿 带 ${b.name[0]}${b.T}齿 ×${fmt(a.T/b.T)}</span>`; }
+  for(const s of stages){ const a=TYPES[s.g1],b=TYPES[s.g2]; html+=`<span class="arrow">→</span><span class="chip">${a.name.slice(0,-2)}${a.T}齿 带 ${b.name.slice(0,-2)}${b.T}齿 ×${fmt(a.T/b.T)}</span>`; }
   r.innerHTML=html+`<span class="arrow">→</span><span class="chip">螺旋桨</span><span class="chip x">共 ×${fmt(tot)}</span>`;
-  if(tot>=4&&!goals.x4){ goals.x4=true; saveGoals(); }
+  if(tot>=10&&!goals.x4){ goals.x4=true; saveGoals(); }
 }
 const PARTS=[
-  {k:'L',name:'大齿轮',sub:'48 齿 · 红',tool:true},{k:'M',name:'中齿轮',sub:'16 齿 · 蓝',tool:true},{k:'S',name:'小齿轮',sub:'8 齿 · 绿',tool:true},
+  {k:'X',name:'超大齿轮',sub:'48 齿 · 橙',tool:true},{k:'L',name:'大齿轮',sub:'24 齿 · 红',tool:true},{k:'M',name:'中齿轮',sub:'16 齿 · 蓝',tool:true},{k:'S',name:'小齿轮',sub:'8 齿 · 绿',tool:true},
   {k:'handle',name:'手柄',sub:'只能有 1 个',tool:true},{k:'prop',name:'螺旋桨',sub:'竹蜻蜓的翅膀',tool:true},
   {k:'axle',name:'长轴',sub:'装零件时自动插上',tool:false},{k:'holes',name:'杠杆',sub:'孔的数量',tool:false}];
 function icon2d(c,k){ const x=c.getContext('2d');
-  if(TYPES[k]){ const t=TYPES[k], T=t.T, R0={L:30,M:27,S:24}[k], m=2*R0/T, ra=R0+m*.95, rf=R0-m*1.15, s=2*Math.PI/T;
+  if(TYPES[k]){ const t=TYPES[k], T=t.T, R0={X:33,L:30,M:27,S:24}[k], m=2*R0/T, ra=R0+m*.95, rf=R0-m*1.15, s=2*Math.PI/T;
     x.beginPath(); for(let j=0;j<T;j++){ const a=j*s; [[rf,-.5],[rf,-.3],[ra,-.13],[ra,.13],[rf,.3]].forEach(([r,f],n)=>{ const px=46+r*Math.cos(a+f*s),py=46+r*Math.sin(a+f*s); (j||n)?x.lineTo(px,py):x.moveTo(px,py); }); }
     x.closePath(); x.fillStyle=t.color; x.fill(); x.beginPath(); x.arc(46,46,R0*.3,0,7); x.fillStyle='#F7F4EC'; x.fill(); }
   else if(k==='handle'){ x.lineCap='round'; x.strokeStyle='#5E9A26'; x.lineWidth=14; x.beginPath(); x.moveTo(24,64); x.lineTo(64,30); x.stroke(); x.fillStyle='#4E8A1E'; x.beginPath(); x.arc(66,28,12,0,7); x.fill(); x.fillStyle='#8CC63F'; x.beginPath(); x.arc(24,64,10,0,7); x.fill(); }
@@ -430,7 +432,7 @@ function buildParts(){ const box=$('parts'); box.innerHTML='';
     row.append(ic,nm,stp); box.append(row);
     if(p.tool){ row.addEventListener('click',()=>setTool(p.k)); row.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setTool(p.k);} }); } } }
 function adjust(k,d){
-  if(k==='holes'){ const n=N+d; if(n<9||n>19) return;
+  if(k==='holes'){ const n=N+d; if(n<9||n>25) return;
     if(d<0){ if(hasAxle(holes[N-1])){ say('最右边的孔上还有零件，先把它拿掉才能把杠杆变短。','warn'); return; } holes.pop(); }
     else holes.push(emptyHole());
     N=n; lastPlaced=null; changed(); return; }
@@ -441,9 +443,9 @@ function adjust(k,d){
 function refreshCounts(){ for(const p of PARTS){ const el=$('n-'+p.k); if(!el) continue;
   el.innerHTML=p.k==='holes'?`<b>${N}</b>个孔`:`<b>${left(p.k)}</b>共 ${inv[p.k]}`;
   const [minus,plus]=el.closest('.part').querySelectorAll('.step button');
-  if(p.k==='holes'){ minus.disabled=N<=9; plus.disabled=N>=19; }
+  if(p.k==='holes'){ minus.disabled=N<=9; plus.disabled=N>=25; }
   else { minus.disabled=inv[p.k]<=Math.max(LIMITS[p.k][0],used(p.k)); plus.disabled=inv[p.k]>=LIMITS[p.k][1]; } } }
-const TOOL_TIPS={L:'点杠杆上的孔，装上大齿轮。',M:'点杠杆上的孔，装上中齿轮。',S:'点杠杆上的孔，装上小齿轮。',handle:'点一个孔，把手柄装上去。',prop:'点一个孔，插上螺旋桨。'};
+const TOOL_TIPS={X:'点杠杆上的孔，装上超大齿轮。',L:'点杠杆上的孔，装上大齿轮。',M:'点杠杆上的孔，装上中齿轮。',S:'点杠杆上的孔，装上小齿轮。',handle:'点一个孔，把手柄装上去。',prop:'点一个孔，插上螺旋桨。'};
 const HUD={crank:'摇手柄：在画面上画圈',view:'转视角：拖动画面',erase:'拿掉零件：点一个孔'};
 function setTool(t){ tool=t;
   document.querySelectorAll('.part[data-tool]').forEach(r=>r.setAttribute('aria-pressed',String(r.dataset.tool===t)));
@@ -510,7 +512,7 @@ const MPU=62.5; // units per meter (1 unit = 1.6 cm, one hole spacing)
 
 /* ---- materials ---- */
 const plastic=(hex,extra={})=>new THREE.MeshPhysicalMaterial(Object.assign({color:srgb(hex),roughness:.36,metalness:0,clearcoat:.5,clearcoatRoughness:.3},extra));
-const gearMat={L:plastic(TYPES.L.color),M:plastic(TYPES.M.color),S:plastic(TYPES.S.color)};
+const gearMat={X:plastic(TYPES.X.color),L:plastic(TYPES.L.color),M:plastic(TYPES.M.color),S:plastic(TYPES.S.color)};
 const hubMat=plastic('#F3F0E6',{roughness:.45});
 const axleMat=plastic('#B9A8DC',{roughness:.5,clearcoat:.2});
 const handleMat=plastic('#86C23A'), knobMat=plastic('#5E9A26');
@@ -548,12 +550,12 @@ function gearGeometry(type){
   sh.closePath();
   // cross axle hole
   const cr=new THREE.Path(), A=.2, B=.075; [[-B,-A],[B,-A],[B,-B],[A,-B],[A,B],[B,B],[B,A],[-B,A],[-B,B],[-A,B],[-A,-B],[-B,-B]].forEach(([px,py],n)=>n?cr.lineTo(px,py):cr.moveTo(px,py)); cr.closePath(); sh.holes.push(cr);
-  const nH=type==='L'?8:type==='M'?4:0, hr=type==='L'?.75:.27, rr=type==='L'?3.6:.98;
+  const nH={X:8,L:6,M:4,S:0}[type], hr={X:.75,L:.38,M:.27,S:0}[type], rr={X:3.6,L:1.55,M:.98,S:0}[type];
   for(let k=0;k<nH;k++){ const a=k*2*Math.PI/nH+Math.PI/nH, h=new THREE.Path(); h.absarc(rr*Math.cos(a),rr*Math.sin(a),hr,0,Math.PI*2,true); sh.holes.push(h); }
   const g=new THREE.ExtrudeGeometry(sh,{depth:GT-0.08,bevelEnabled:true,bevelThickness:.04,bevelSize:.035,bevelSegments:2,curveSegments:10});
   g.translate(0,0,-(GT-0.08)/2); g.rotateX(-Math.PI/2); g.computeVertexNormals(); return g;
 }
-const GEO={L:gearGeometry('L'),M:gearGeometry('M'),S:gearGeometry('S')};
+const GEO={X:gearGeometry('X'),L:gearGeometry('L'),M:gearGeometry('M'),S:gearGeometry('S')};
 const hubGeo=new THREE.CylinderGeometry(.34,.34,GT+.08,24); // raised hub ring
 const hubHole=new THREE.CylinderGeometry(.22,.22,GT+.1,6);
 // Shared assets: built once and reused on every rebuild, so placing parts never leaks memory
@@ -735,8 +737,8 @@ function frame(now){
     if(wy<=0.25 && f.t>0.3){ // landed on the table
       if(p){ p.position.y=0.1; p.rotation.set(0,0,0); }
       const m=f.max; __sfx&&__sfx.land(m>best); let msg=`飞了 <b>${m.toFixed(1)} 米</b>！`;
-      if(m>best){ best=m; try{localStorage.setItem('zqt48-best',String(best));}catch(e){} msg+=' 新纪录！'; }
-      if(m>=10) goals.m10=true; if(m>=30) goals.m30=true; saveGoals();
+      if(m>best){ best=m; try{localStorage.setItem('zqt27-best',String(best));}catch(e){} msg+=' 新纪录！'; }
+      if(m>=20) goals.m20=true; if(m>=50) goals.m50=true; saveGoals();
       say(msg+' 竹蜻蜓马上装回长轴上，可以再摇一次。','good'); f.landed=1.2; f.v=0; tag.style.display='none'; return true;
     }
     tagQ.push({tag,p,f});
@@ -790,8 +792,8 @@ const syncSound=()=>{ $('musicBtn').setAttribute('aria-pressed',String(__sfx.mus
 $('musicBtn').onclick=()=>{ __sfx.init(); __sfx.setMusic(!__sfx.music); syncSound(); };
 $('sfxBtn').onclick=()=>{ __sfx.init(); __sfx.setSfx(!__sfx.sfx); syncSound(); };
 syncSound();
-$('bookBtn').onclick=()=>{ loadBook(); frameView(); setTool('crank'); say('书上第 68 页的竹蜻蜓结构，大齿轮换成 48 齿：大带小 ×6，再中带小 ×2，一共 ×12。','good'); };
-$('clearBtn').onclick=()=>{ makeHoles(N); flyers=[]; lastPlaced=null; changed(); setTool('L'); say('杠杆清空了。先装一个大齿轮和手柄吧。'); };
+$('bookBtn').onclick=()=>{ loadBook(); frameView(); setTool('crank'); say('长杠杆五级传动：超大带小 ×6，小接大，大带中 ×1.5，中接大，大带小 ×3，一共 ×27。','good'); };
+$('clearBtn').onclick=()=>{ makeHoles(N); flyers=[]; lastPlaced=null; changed(); setTool('X'); say('杠杆清空了。先装一个超大齿轮和手柄吧。'); };
 
 buildParts(); renderGoals(); resize(); loadBook(); frameView(); setTool('crank');
 requestAnimationFrame(t=>{ last=t; frame(t); });
