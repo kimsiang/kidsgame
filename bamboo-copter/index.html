@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>竹蜻蜓齿轮工坊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: toy workbench — the 3D gear rig is the hero, parts tray beside it like the kit's box; single light "activity book" look */
+:root{
+  color-scheme: light;
+  --page:#EEF5DC;
+  --frame:#7DBA3C;
+  --ink:#1E2A17;
+  --muted:#5B6950;
+  --card:#FFFFFF;
+  --line:rgba(30,42,23,.14);
+  --red:#E8412F; --blue:#2F7FDB; --green:#6DBE45; --yellow:#FFC20E;
+  --display:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --body:"Nunito","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);line-height:1.05;margin:0;letter-spacing:.02em;text-wrap:balance}
+h1 .dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;background:var(--yellow);margin-right:.18em;vertical-align:.05em;box-shadow:inset -4px -4px 0 rgba(0,0,0,.08)}
+.lede{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.page-no{font-family:var(--display);font-size:15px;color:var(--frame);border:2px solid var(--frame);border-radius:999px;padding:2px 12px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--card);border:3px solid var(--frame);border-radius:22px;overflow:hidden;min-width:0}
+.stage{position:relative;height:clamp(380px,56vw,600px);background:#BFE2F7}
+@media (max-width:860px){.stage{height:clamp(380px,100vw,520px)}}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.hud span{background:rgba(255,255,255,.86);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--ink)}
+.tools3d{position:absolute;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.viewbtn{border:0;background:rgba(255,255,255,.9);font-size:13px;padding:6px 12px;border-radius:999px}
+.viewbtn[aria-pressed="false"]{background:rgba(255,255,255,.55);color:var(--muted);text-decoration:line-through}
+.tag{position:absolute;pointer-events:none;transform:translate(-50%,-230%);background:var(--ink);color:#fff;font-weight:800;font-size:14px;padding:3px 10px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--ink)}
+.status{padding:10px 16px;font-size:14px;min-height:44px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.status b{font-weight:800}
+.status.warn{background:#FFF3D6}
+.status.good{background:#E3F4D6}
+.panel{padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line)}
+.meters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.m .k{display:block;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.m .v{display:block;font-family:var(--display);font-size:clamp(22px,4.4vw,30px);line-height:1.1;font-variant-numeric:tabular-nums}
+.m .v small{font-family:var(--body);font-size:12px;color:var(--muted);margin-left:3px}
+.speedbar{position:relative;height:14px;border-radius:999px;background:#EAF0E2;margin-top:10px}
+.speedbar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--blue);width:0}
+.speedbar i.go{background:var(--green)}
+.speedbar .line{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--red)}
+.speedbar .lab{position:absolute;top:16px;font-size:11px;color:var(--red);transform:translateX(-50%);white-space:nowrap}
+.route{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-top:26px}
+.chip{border-radius:999px;padding:3px 10px;background:#F2F5EE;border:1px solid var(--line);white-space:nowrap}
+.chip.x{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:800}
+.arrow{color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:14px;border:2px solid var(--ink);background:var(--card);color:var(--ink);padding:8px 14px;font-weight:800}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button:disabled{opacity:.35;cursor:not-allowed}
+.big{background:var(--yellow);font-family:var(--display);font-weight:400;font-size:20px;padding:10px 20px;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 4px 0 var(--ink)}
+.big:active,.big.on{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.ghost{border-color:var(--line);font-weight:600}
+aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--card);border-radius:20px;border:1px solid var(--line);padding:14px 14px 16px}
+.card h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0 0 4px;line-height:1.2}
+.card .hint{font-size:13px;color:var(--muted);margin:0 0 10px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.mode{border-color:var(--line);font-weight:700;padding:8px 6px}
+.mode[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:#fff}
+.seg{display:flex;border:2px solid var(--ink);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;border:0;border-radius:0;padding:7px 6px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.parts{display:flex;flex-direction:column;gap:6px}
+.part{display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:10px;padding:6px 8px;border-radius:14px;border:2px solid transparent;cursor:pointer}
+.part:hover{background:#F6F9F1}
+.part[aria-pressed="true"]{border-color:var(--ink);background:#FFFBEA}
+.part.static{cursor:default}
+.part.static:hover{background:transparent}
+.part canvas{width:46px;height:46px}
+.pn{font-weight:800;line-height:1.2}
+.pn small{display:block;font-weight:600;font-size:12px;color:var(--muted)}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:30px;height:30px;padding:0;border-radius:10px;font-size:18px;line-height:1}
+.step .n{min-width:46px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px;line-height:1.15}
+.step .n b{font-size:17px;display:block}
+.goals{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.goals li{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.goals .tick{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);margin-top:1px;display:grid;place-items:center;font-size:12px;color:#fff}
+.goals li.done .tick{background:var(--green);border-color:var(--green)}
+.goals li.done span{color:var(--muted)}
+.best{font-family:var(--display);font-size:18px;margin-top:10px}
+.learn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:860px){.learn{grid-template-columns:minmax(0,1fr)}}
+.learn h3{font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 4px}
+.learn p{margin:0;max-width:62ch;font-size:14px}
+.rule{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rule .chip{font-size:12px}
+.formula{font-family:var(--display);font-size:18px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="dot" aria-hidden="true"></span>竹蜻蜓齿轮工坊</h1>
+      <p class="lede">把齿轮装到杠杆的上面或下面，转动手柄。大齿轮带小齿轮会越转越快，螺旋桨转得够快，一松手就沿着长轴飞上天。</p>
+    </div>
+    <span class="page-no">旋转与重力的艺术 · 多级变速</span>
+  </header>
+
+  <div class="grid">
+    <section class="board" aria-label="齿轮工作台">
+      <div class="stage" id="stage">
+        <div class="hud" id="hud"><span id="hudMode">摇手柄：在画面上画圈</span></div>
+        <div class="tools3d"><button class="viewbtn" id="musicBtn" type="button" aria-pressed="true">音乐</button><button class="viewbtn" id="sfxBtn" type="button" aria-pressed="true">音效</button><button class="viewbtn" id="resetView" type="button">回到正面</button></div>
+      </div>
+      <div class="status" id="status" role="status">正在搭积木…</div>
+      <div class="panel">
+        <div>
+          <div class="meters">
+            <div class="m"><span class="k">手柄</span><span class="v" id="vHand">0<small>转/秒</small></span></div>
+            <div class="m"><span class="k">螺旋桨</span><span class="v" id="vProp">0<small>转/秒</small></span></div>
+            <div class="m"><span class="k">加速倍数</span><span class="v" id="vRatio">—</span></div>
+          </div>
+          <div class="speedbar" aria-hidden="true"><i id="bar"></i><span class="line" id="tline"></span><span class="lab" id="tlab">起飞线 10 转/秒</span></div>
+          <div class="route" id="route"></div>
+        </div>
+        <div class="actions">
+          <button class="big" id="hold" type="button">按住摇手柄</button>
+          <button class="ghost" id="bookBtn" type="button">书上的竹蜻蜓</button>
+          <button class="ghost" id="clearBtn" type="button">清空杠杆</button>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>零件盒</h2>
+        <p class="hint">点一个零件，再点杠杆上的孔。用 − 和 + 调整盒子里每种零件有几个。拖动画面能转视角，双指或滚轮能放大。</p>
+        <div class="modes">
+          <button class="mode" type="button" id="m-crank" aria-pressed="true">摇手柄</button>
+          <button class="mode" type="button" id="m-view" aria-pressed="false">转视角</button>
+          <button class="mode" type="button" id="m-erase" aria-pressed="false">拿掉零件</button>
+        </div>
+        <div class="seg" role="group" aria-label="齿轮装在哪一面">
+          <button type="button" id="layF" aria-pressed="true">装在杠杆上面</button>
+          <button type="button" id="layB" aria-pressed="false">装在杠杆下面</button>
+        </div>
+        <div class="parts" id="parts"></div>
+      </div>
+      <div class="card">
+        <h2>挑战</h2>
+        <ul class="goals" id="goals"></ul>
+        <div class="best" id="best">最高纪录：还没飞过</div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="card learn">
+    <div>
+      <h3>为什么大带小会变快</h3>
+      <p>大齿轮转一圈，要推过 24 个齿。小齿轮只有 8 个齿，被推过 24 个齿就要转 3 圈。所以手摇 1 圈，小齿轮转 3 圈。</p>
+      <div class="formula">倍数 = 主动齿数 ÷ 被动齿数</div>
+    </div>
+    <div>
+      <h3>多级变速，倍数相乘</h3>
+      <p>小齿轮和同一根长轴上另一面的齿轮一起转。这个齿轮再去带下一个小齿轮，就是第二级。两级 ×3 和 ×2，合起来就是 ×6。</p>
+      <div class="formula">×3 × ×2 = ×6</div>
+    </div>
+    <div>
+      <h3>怎样才能咬合</h3>
+      <p>两个齿轮在同一面，中心要隔得刚刚好，齿才会咬住。太近会撞上，太远就碰不到。</p>
+      <div class="rule"><span class="chip">小+小 隔2孔</span><span class="chip">小+中 隔3孔</span><span class="chip">小+大 隔4孔</span><span class="chip">中+中 隔4孔</span><span class="chip">中+大 隔5孔</span><span class="chip">大+大 隔6孔</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ===== Music & sound effects, synthesized with Web Audio (no audio files) ===== */
+(()=>{
+let ac=null, musicBus, sfxBus, noiseBuf, whirr=null, fly=null;
+let musicOn=true, sfxOn=true, energy=0, flying=false, toothAcc=0, clickBudget=0;
+try{ const m=localStorage.getItem('zqt-music'); if(m!==null) musicOn=m==='1'; const s=localStorage.getItem('zqt-sfx'); if(s!==null) sfxOn=s==='1'; }catch(e){}
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+
+function init(){
+  if(ac){ if(ac.state==='suspended') ac.resume(); return; }
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  ac=new AC();
+  const comp=ac.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=3; comp.connect(ac.destination);
+  const master=ac.createGain(); master.gain.value=.9; master.connect(comp);
+  musicBus=ac.createGain(); musicBus.gain.value=musicOn?.3:0; musicBus.connect(master);
+  sfxBus=ac.createGain(); sfxBus.gain.value=sfxOn?.75:0; sfxBus.connect(master);
+  // soft room echo on the music
+  const dl=ac.createDelay(1); dl.delayTime.value=.27; const fb=ac.createGain(); fb.gain.value=.28; const lp=ac.createBiquadFilter(); lp.frequency.value=2200; const wet=ac.createGain(); wet.gain.value=.22;
+  musicBus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet); wet.connect(master);
+  noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  whirr=makeWhirr(); fly=makeWhirr();
+  nextT=ac.currentTime+.1; setInterval(schedule,25);
+}
+function env(g,t,peak,a,dec){ g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec); }
+function tone(bus,type,f,t,peak,dec,a=.005,f2=null){ const o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dec); env(g,t,peak,a,dec); o.connect(g); g.connect(bus); o.start(t); o.stop(t+a+dec+.05); }
+function noise(bus,t,peak,dec,ftype,f,f2=null,q=1){ const s=ac.createBufferSource(); s.buffer=noiseBuf; const fl=ac.createBiquadFilter(); fl.type=ftype; fl.frequency.setValueAtTime(f,t); if(f2) fl.frequency.exponentialRampToValueAtTime(f2,t+dec); fl.Q.value=q; const g=ac.createGain(); env(g,t,peak,.004,dec); s.connect(fl); fl.connect(g); g.connect(bus); s.start(t); s.stop(t+dec+.05); }
+
+/* instruments */
+const marimba=(m,t,v=.5,bus=musicBus)=>{ const f=mtof(m); tone(bus,'sine',f,t,v,.55); tone(bus,'sine',f*3.93,t,v*.18,.07); };
+const glock=(m,t,v=.12)=>{ const f=mtof(m); tone(musicBus,'sine',f,t,v,.6); tone(musicBus,'sine',f*2.76,t,v*.3,.15); };
+const bass=(m,t,v=.42)=>{ tone(musicBus,'triangle',mtof(m),t,v,.32,.008); };
+const pad=(ms,t)=>ms.forEach(m=>{ tone(musicBus,'triangle',mtof(m),t,.045,.22,.01); });
+const block=(t,f=1250,v=.12)=>tone(musicBus,'triangle',f,t,v,.045,.002);
+const shaker=(t,v=.05)=>noise(musicBus,t,v,.045,'highpass',6500);
+const kick=(t)=>tone(musicBus,'sine',130,t,.35,.14,.003,48);
+
+/* the tune: 8 bars, I–vi–IV–V–I–vi–ii–V in C, melody in 8th notes (0 = rest) */
+const MEL=[[76,0,79,0,81,79,76,0],[84,0,81,0,79,76,74,0],[72,74,76,0,81,0,79,0],[74,0,79,0,76,74,0,0],
+           [76,0,79,0,84,0,81,79],[81,0,76,0,79,76,74,72],[74,0,77,0,81,0,79,77],[76,74,72,74,0,0,67,0]];
+const ROOT=[48,45,41,43,48,45,50,43];
+const CHORD=[[60,64,67],[57,60,64],[57,60,65],[55,59,62],[60,64,67],[57,60,64],[57,62,65],[55,59,62]];
+const BPM=112, STEP=60/BPM/4; let nextT=0, step=0;
+function schedule(){
+  if(!ac) return;
+  if(nextT<ac.currentTime-.05) nextT=ac.currentTime+.05;
+  while(nextT<ac.currentTime+.12){ if(musicOn) playStep(step,nextT); step=(step+1)%128; nextT+=STEP; }
+}
+function playStep(s,t){
+  const bar=s>>4, s16=s&15, e8=s16>>1, on8=(s16&1)===0, rep=Math.floor(s/128);
+  if(on8){
+    const n=MEL[bar][e8]; if(n) marimba(n,t,e8%2?.32:.42);
+    const r=ROOT[bar]; if(e8===0||e8===3) bass(r,t); if(e8===4) bass(r+7,t,.32); if(e8===6) bass(r+12,t,.22);
+    if(e8===2||e8===6){ pad(CHORD[bar],t); block(t); }
+    if(e8===0||e8===4) kick(t);
+  }
+  if(!on8||energy>.5) shaker(t,on8?.03:.045);
+  // spinning fast or flying: add a sparkly arpeggio on top
+  if((energy>.75||flying) && on8){ const c=CHORD[bar]; glock(c[e8%3]+24,t,flying?.1:.07); }
+}
+
+/* continuous whirr for a spinning propeller */
+function makeWhirr(){
+  const o=ac.createOscillator(); o.type='sawtooth'; const o2=ac.createOscillator(); o2.type='square';
+  const f=ac.createBiquadFilter(); f.type='lowpass'; f.Q.value=4; const g=ac.createGain(); g.gain.value=0;
+  o.connect(f); o2.connect(f); f.connect(g); g.connect(sfxBus); o.start(); o2.start(); return {o,o2,f,g};
+}
+function setWhirr(w,rev){ const t=ac.currentTime;
+  w.o.frequency.setTargetAtTime(30+rev*8,t,.05); w.o2.frequency.setTargetAtTime(15+rev*4.03,t,.05);
+  w.f.frequency.setTargetAtTime(250+rev*90,t,.05); w.g.gain.setTargetAtTime(Math.min(.16,rev*.011),t,.06); }
+
+const api={
+  init,
+  get music(){return musicOn;}, get sfx(){return sfxOn;},
+  setMusic(v){ musicOn=v; try{localStorage.setItem('zqt-music',v?'1':'0');}catch(e){} if(ac) musicBus.gain.setTargetAtTime(v?.3:0,ac.currentTime,.1); },
+  setSfx(v){ sfxOn=v; try{localStorage.setItem('zqt-sfx',v?'1':'0');}catch(e){} if(ac) sfxBus.gain.setTargetAtTime(v?.75:0,ac.currentTime,.05); },
+  place(k){ if(!ac) return; const t=ac.currentTime, f={L:260,M:360,S:520,handle:440,prop:640}[k]||400;
+    tone(sfxBus,'triangle',f,t,.35,.07,.002); noise(sfxBus,t,.18,.03,'bandpass',2500,null,2); tone(sfxBus,'triangle',f*1.5,t+.07,.22,.08,.002); },
+  pop(){ if(!ac) return; tone(sfxBus,'sine',520,ac.currentTime,.3,.14,.004,180); },
+  warn(){ if(!ac) return; const t=ac.currentTime; tone(sfxBus,'square',233,t,.06,.1,.005); tone(sfxBus,'square',196,t+.12,.06,.14,.005); },
+  launch(){ if(!ac) return; const t=ac.currentTime; noise(sfxBus,t,.35,.7,'bandpass',500,3800,1.5); tone(sfxBus,'sine',380,t,.16,.5,.01,1400);
+    [72,76,79,84].forEach((m,i)=>marimba(m,t+.06+i*.07,.28,sfxBus)); },
+  land(record){ if(!ac) return; const t=ac.currentTime; tone(sfxBus,'sine',320,t,.4,.2,.003,85); noise(sfxBus,t,.15,.06,'lowpass',900);
+    if(record) [72,76,79,84,88].forEach((m,i)=>marimba(m,t+.25+i*.09,.34,sfxBus)); else [79,72].forEach((m,i)=>marimba(m,t+.2+i*.12,.25,sfxBus)); },
+  // called every frame by the game
+  tick(dt,handRev,propRev,flyW,isFlying){
+    if(!ac) return; energy=Math.min(1,propRev/10); flying=isFlying;
+    setWhirr(whirr,propRev); setWhirr(fly,flyW);
+    // gear teeth clicking past each other (big-gear teeth per second, thinned when fast)
+    toothAcc+=handRev*24*dt; clickBudget=Math.min(1,clickBudget+dt*22);
+    if(toothAcc>=1){ toothAcc%=1; if(clickBudget>=1){ clickBudget=0; noise(sfxBus,ac.currentTime,.09,.018,'bandpass',3200+Math.random()*800,null,3); } }
+  }
+};
+window.__sfx=api;
+const unlock=()=>init();
+document.addEventListener('pointerdown',unlock,true); document.addEventListener('keydown',unlock,true);
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const stage=$('stage'), st=$('status');
+function say(html,kind=''){ if(kind==='warn'&&window.__sfx) __sfx.warn(); st.innerHTML=html; st.className='status'+(kind?' '+kind:''); }
+
+/* ================= game model (same rules as the kit) ================= */
+const TYPES={
+  L:{name:'大齿轮',T:24,r:3,color:'#E33A28',hl:'#FF8A6E'},
+  M:{name:'中齿轮',T:16,r:2,color:'#2A78D6',hl:'#7DB5F2'},
+  S:{name:'小齿轮',T:8, r:1,color:'#63B83C',hl:'#A9E07F'},
+};
+const BOOK_INV={L:1,M:1,S:4,axle:4,handle:1,prop:1};
+const LIMITS={L:[0,6],M:[0,6],S:[0,10],axle:[0,19],handle:[0,1],prop:[0,3]};
+const TAKEOFF=10, MAXH=3.2*2*Math.PI, AUTO=2.6*2*Math.PI, G=9.8;
+let inv={...BOOK_INV}, N=13, holes=[];
+let tool='crank', layer='front';
+let handOmega=0, theta=0, dragging=false, dragAccum=0, lastAng=0, holding=false;
+let flyers=[], best=0, sol=null, shake=0, lastPlaced=null;
+let goals={spin:false,x4:false,fly:false,m3:false,m8:false};
+try{ best=parseFloat(localStorage.getItem('zqt-best'))||0; const g=JSON.parse(localStorage.getItem('zqt-goals')||'null'); if(g) goals={...goals,...g}; }catch(e){}
+const emptyHole=()=>({front:null,back:null,handle:false,prop:false,ps:'on',wait:0,pa:0});
+function makeHoles(n){ holes=Array.from({length:n},emptyHole); N=n; }
+const hasAxle=h=>!!(h.front||h.back||h.handle||h.prop);
+function used(k){ let c=0; for(const h of holes){
+  if(k==='axle'){ if(hasAxle(h)) c++; } else if(k==='handle'){ if(h.handle) c++; } else if(k==='prop'){ if(h.prop) c++; }
+  else { if(h.front===k) c++; if(h.back===k) c++; } } return c; }
+const left=k=>inv[k]-used(k);
+const side=L=>L==='front'?'上面':'下面';
+
+function solve(){
+  const rho=Array(N).fill(null), psi=holes.map(()=>({front:0,back:0})), via=Array(N).fill(null);
+  const hi=holes.findIndex(h=>h.handle); let jam=false;
+  if(hi>=0){ rho[hi]=1; const q=[hi];
+    while(q.length){ const a=q.shift();
+      for(const L of ['front','back']){ const g=holes[a][L]; if(!g) continue;
+        for(let b=0;b<N;b++){ if(b===a) continue; const g2=holes[b][L]; if(!g2) continue;
+          if(Math.abs(a-b)!==TYPES[g].r+TYPES[g2].r) continue;
+          const nr=-rho[a]*TYPES[g].T/TYPES[g2].T;
+          if(rho[b]===null){ rho[b]=nr; via[b]={from:a,g1:g,g2,L};
+            const al=b>a?0:Math.PI, be=al+Math.PI;
+            psi[b][L]=be+(Math.PI-TYPES[g].T*(psi[a][L]-al))/TYPES[g2].T; q.push(b);
+          } else if(Math.abs(rho[b]-nr)>1e-6) jam=true;
+        } } } }
+  return {rho,psi,via,jam,hi};
+}
+function checkGear(i,t,L){ let meshes=0;
+  for(let j=0;j<N;j++){ if(j===i) continue; const g=holes[j][L]; if(!g) continue;
+    const d=Math.abs(i-j), s=TYPES[t].r+TYPES[g].r;
+    if(d<s) return {ok:false,msg:`太挤了，会撞到第 ${j+1} 孔的${TYPES[g].name}。${TYPES[t].name}和它要隔 ${s} 个孔才能咬合。`};
+    if(d===s) meshes++; }
+  return {ok:true,meshes}; }
+const fmt=x=>{const r=Math.round(x*100)/100; return Number.isInteger(r)?String(r):String(r);};
+function propRev(i){ return sol&&sol.rho[i]!==null&&!sol.jam ? Math.abs(sol.rho[i]*handOmega)/(2*Math.PI) : 0; }
+
+function loadBook(){
+  inv={...BOOK_INV}; makeHoles(13);
+  holes[10].front='L'; holes[10].handle=true;
+  holes[6].front='S'; holes[6].back='M';
+  holes[3].back='S'; holes[3].prop=true;
+  flyers=[]; lastPlaced=null; changed();
+}
+
+function tryPlace(i){
+  const h=holes[i], other=layer==='front'?'back':'front';
+  if(tool==='erase'){
+    if(h.prop){ h.prop=false; flyers=flyers.filter(f=>f.i!==i); say('拿掉了螺旋桨。'); }
+    else if(h.handle){ h.handle=false; say('拿掉了手柄。'); }
+    else if(h[layer]){ say(`拿掉了${side(layer)}的${TYPES[h[layer]].name}。`); h[layer]=null; }
+    else if(h[other]){ say(`拿掉了${side(other)}的${TYPES[h[other]].name}。`); h[other]=null; }
+    else { say(`第 ${i+1} 孔是空的。`); return; }
+    __sfx&&__sfx.pop(); lastPlaced=null; changed(); return;
+  }
+  if(tool==='crank'||tool==='view') return;
+  if(!hasAxle(h) && left('axle')<=0){ say('长轴用完了。在零件盒里把<b>长轴</b>调多一个。','warn'); return; }
+  if(TYPES[tool]){ const T=TYPES[tool];
+    if(h[layer]){ say(`第 ${i+1} 孔${side(layer)}已经有${TYPES[h[layer]].name}了。可以换到另一面装。`,'warn'); return; }
+    if(left(tool)<=0){ say(`${T.name}用完了。在零件盒里点 <b>+</b> 多拿一个。`,'warn'); return; }
+    const c=checkGear(i,tool,layer); if(!c.ok){ say(c.msg,'warn'); return; }
+    h[layer]=tool; lastPlaced=i+':'+layer; changed(); __sfx&&__sfx.place(tool);
+    say(c.meshes?`装好了，${T.name}和旁边的齿轮咬合上了。`:`装好了。这个${T.name}还没和别的齿轮咬合。`, c.meshes?'good':'');
+  } else if(tool==='handle'){ if(h.handle) return;
+    if(left('handle')<=0){ say('手柄只有一个。先选「拿掉零件」把原来的手柄拿下来。','warn'); return; }
+    h.handle=true; lastPlaced=i+':handle'; changed(); __sfx&&__sfx.place('handle'); say('手柄装好了。选「摇手柄」就可以开始摇。','good');
+  } else if(tool==='prop'){ if(h.prop) return;
+    if(left('prop')<=0){ say('螺旋桨用完了。在零件盒里点 <b>+</b> 多拿一个。','warn'); return; }
+    h.prop=true; h.ps='on'; lastPlaced=i+':prop'; changed(); __sfx&&__sfx.place('prop'); say('螺旋桨插好了。','good');
+  }
+}
+function release(){ let launched=0, weak=0;
+  holes.forEach((h,i)=>{ if(!h.prop||h.ps!=='on') return; const r=propRev(i);
+    if(r>=TAKEOFF){ flyers.push({i,y:0,v:0,w:r,ang:h.pa,t:0,max:0,landed:0}); h.ps='fly'; launched++; }
+    else if(r>0.8) weak=Math.max(weak,r); });
+  if(launched){ __sfx&&__sfx.launch(); goals.fly=true; saveGoals(); say('起飞！','good'); }
+  else if(weak) say(`螺旋桨只有 ${weak.toFixed(1)} 转/秒，还不够起飞（要 10 转/秒）。摇快一点，或者换齿轮让倍数更大。`,'warn');
+}
+
+/* ================= UI ================= */
+const GOALS=[['spin','让螺旋桨转起来'],['x4','加速倍数达到 ×4 以上'],['fly','让竹蜻蜓飞起来'],['m3','飞过 3 米'],['m8','飞过 8 米（提示：大齿轮多拿一个，做出 ×9）']];
+function renderGoals(){
+  $('goals').innerHTML=GOALS.map(([k,t])=>`<li class="${goals[k]?'done':''}"><span class="tick">${goals[k]?'✓':''}</span><span>${t}</span></li>`).join('');
+  $('best').textContent=best>0?`最高纪录：${best.toFixed(1)} 米`:'最高纪录：还没飞过'; }
+function saveGoals(){ try{localStorage.setItem('zqt-goals',JSON.stringify(goals));}catch(e){} renderGoals(); }
+function firstProp(){ let k=-1; holes.forEach((h,i)=>{ if(k<0&&h.prop&&sol.rho[i]!==null) k=i; }); if(k<0) k=holes.findIndex(h=>h.prop); return k; }
+function updateMeters(){
+  $('vHand').innerHTML=(Math.abs(handOmega)/(2*Math.PI)).toFixed(1)+'<small>转/秒</small>';
+  const k=firstProp(), pr=k>=0?propRev(k):0;
+  $('vProp').innerHTML=pr.toFixed(1)+'<small>转/秒</small>';
+  const MAXB=32, b=$('bar'); b.style.width=Math.min(100,pr/MAXB*100)+'%'; b.classList.toggle('go',pr>=TAKEOFF);
+  $('tline').style.left=$('tlab').style.left=(TAKEOFF/MAXB*100)+'%';
+}
+function routeHTML(){
+  const k=firstProp(), r=$('route'), ratio=$('vRatio');
+  if(sol.hi<0){ ratio.textContent='—'; r.innerHTML='<span class="chip">还没有手柄</span>'; return; }
+  if(k<0){ ratio.textContent='—'; r.innerHTML='<span class="chip">还没有螺旋桨</span>'; return; }
+  if(sol.jam){ ratio.textContent='卡住'; r.innerHTML='<span class="chip">齿轮互相顶住了</span>'; return; }
+  if(sol.rho[k]===null){ ratio.textContent='×0'; r.innerHTML='<span class="chip">手柄</span><span class="arrow">⋯</span><span class="chip">螺旋桨还没连上</span>'; return; }
+  const stages=[]; let c=k; while(c!==sol.hi){ const v=sol.via[c]; stages.unshift(v); c=v.from; }
+  const tot=Math.abs(sol.rho[k]); ratio.textContent='×'+fmt(tot);
+  let html='<span class="chip">手柄</span>';
+  for(const s of stages){ const a=TYPES[s.g1],b=TYPES[s.g2]; html+=`<span class="arrow">→</span><span class="chip">${a.name[0]}${a.T}齿 带 ${b.name[0]}${b.T}齿 ×${fmt(a.T/b.T)}</span>`; }
+  r.innerHTML=html+`<span class="arrow">→</span><span class="chip">螺旋桨</span><span class="chip x">共 ×${fmt(tot)}</span>`;
+  if(tot>=4&&!goals.x4){ goals.x4=true; saveGoals(); }
+}
+const PARTS=[
+  {k:'L',name:'大齿轮',sub:'24 齿 · 红',tool:true},{k:'M',name:'中齿轮',sub:'16 齿 · 蓝',tool:true},{k:'S',name:'小齿轮',sub:'8 齿 · 绿',tool:true},
+  {k:'handle',name:'手柄',sub:'只能有 1 个',tool:true},{k:'prop',name:'螺旋桨',sub:'竹蜻蜓的翅膀',tool:true},
+  {k:'axle',name:'长轴',sub:'装零件时自动插上',tool:false},{k:'holes',name:'杠杆',sub:'孔的数量',tool:false}];
+function icon2d(c,k){ const x=c.getContext('2d');
+  if(TYPES[k]){ const t=TYPES[k], T=t.T, R0={L:30,M:27,S:24}[k], m=2*R0/T, ra=R0+m*.95, rf=R0-m*1.15, s=2*Math.PI/T;
+    x.beginPath(); for(let j=0;j<T;j++){ const a=j*s; [[rf,-.5],[rf,-.3],[ra,-.13],[ra,.13],[rf,.3]].forEach(([r,f],n)=>{ const px=46+r*Math.cos(a+f*s),py=46+r*Math.sin(a+f*s); (j||n)?x.lineTo(px,py):x.moveTo(px,py); }); }
+    x.closePath(); x.fillStyle=t.color; x.fill(); x.beginPath(); x.arc(46,46,R0*.3,0,7); x.fillStyle='#F7F4EC'; x.fill(); }
+  else if(k==='handle'){ x.lineCap='round'; x.strokeStyle='#5E9A26'; x.lineWidth=14; x.beginPath(); x.moveTo(24,64); x.lineTo(64,30); x.stroke(); x.fillStyle='#4E8A1E'; x.beginPath(); x.arc(66,28,12,0,7); x.fill(); x.fillStyle='#8CC63F'; x.beginPath(); x.arc(24,64,10,0,7); x.fill(); }
+  else if(k==='prop'){ x.strokeStyle='#7DC13A'; x.lineWidth=4; x.beginPath(); x.ellipse(46,46,38,14,0,0,7); x.stroke(); x.fillStyle='#A6D96A'; [[-1],[1]].forEach(([d])=>{ x.beginPath(); x.ellipse(46+d*18,46,18,6,0,0,7); x.fill(); }); x.fillStyle='#6FA92D'; x.fillRect(40,40,12,12); }
+  else if(k==='axle'){ x.strokeStyle='#A898CF'; x.lineWidth=14; x.lineCap='round'; x.beginPath(); x.moveTo(46,10); x.lineTo(46,82); x.stroke(); }
+  else if(k==='holes'){ x.fillStyle='#F4F4EE'; x.strokeStyle='#9AA290'; x.lineWidth=2; x.fillRect(6,34,80,24); x.strokeRect(6,34,80,24); x.fillStyle='#CED4C5'; for(let i=0;i<4;i++){ x.beginPath(); x.arc(18+i*19,46,6,0,7); x.fill(); } } }
+function buildParts(){ const box=$('parts'); box.innerHTML='';
+  for(const p of PARTS){ const row=document.createElement('div'); row.className='part'+(p.tool?'':' static');
+    if(p.tool){ row.setAttribute('role','button'); row.tabIndex=0; row.dataset.tool=p.k; row.setAttribute('aria-pressed','false'); }
+    const ic=document.createElement('canvas'); ic.width=92; ic.height=92; ic.setAttribute('aria-hidden','true'); icon2d(ic,p.k);
+    const nm=document.createElement('div'); nm.className='pn'; nm.innerHTML=`${p.name}<small>${p.sub}</small>`;
+    const stp=document.createElement('div'); stp.className='step';
+    stp.innerHTML=`<button type="button" aria-label="${p.name}减少一个" data-d="-1">−</button><span class="n" id="n-${p.k}"></span><button type="button" aria-label="${p.name}增加一个" data-d="1">+</button>`;
+    stp.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); adjust(p.k,+b.dataset.d); });
+    row.append(ic,nm,stp); box.append(row);
+    if(p.tool){ row.addEventListener('click',()=>setTool(p.k)); row.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setTool(p.k);} }); } } }
+function adjust(k,d){
+  if(k==='holes'){ const n=N+d; if(n<9||n>19) return;
+    if(d<0){ if(hasAxle(holes[N-1])){ say('最右边的孔上还有零件，先把它拿掉才能把杠杆变短。','warn'); return; } holes.pop(); }
+    else holes.push(emptyHole());
+    N=n; lastPlaced=null; changed(); return; }
+  const [mn,mx]=LIMITS[k], nv=inv[k]+d;
+  if(nv<mn||nv>mx){ if(k==='handle'&&nv>mx) say('只有一双手，所以手柄最多 1 个。','warn'); return; }
+  if(nv<used(k)){ say(`杠杆上正在用 ${used(k)} 个${PARTS.find(p=>p.k===k).name}。先拿掉一个，才能把数量调小。`,'warn'); return; }
+  inv[k]=nv; refreshCounts(); }
+function refreshCounts(){ for(const p of PARTS){ const el=$('n-'+p.k); if(!el) continue;
+  el.innerHTML=p.k==='holes'?`<b>${N}</b>个孔`:`<b>${left(p.k)}</b>共 ${inv[p.k]}`;
+  const [minus,plus]=el.closest('.part').querySelectorAll('.step button');
+  if(p.k==='holes'){ minus.disabled=N<=9; plus.disabled=N>=19; }
+  else { minus.disabled=inv[p.k]<=Math.max(LIMITS[p.k][0],used(p.k)); plus.disabled=inv[p.k]>=LIMITS[p.k][1]; } } }
+const TOOL_TIPS={L:'点杠杆上的孔，装上大齿轮。',M:'点杠杆上的孔，装上中齿轮。',S:'点杠杆上的孔，装上小齿轮。',handle:'点一个孔，把手柄装上去。',prop:'点一个孔，插上螺旋桨。'};
+const HUD={crank:'摇手柄：在画面上画圈',view:'转视角：拖动画面',erase:'拿掉零件：点一个孔'};
+function setTool(t){ tool=t;
+  document.querySelectorAll('.part[data-tool]').forEach(r=>r.setAttribute('aria-pressed',String(r.dataset.tool===t)));
+  for(const m of ['crank','view','erase']) $('m-'+m).setAttribute('aria-pressed',String(t===m));
+  $('hudMode').textContent=HUD[t]||(PARTS.find(p=>p.k===t).name+'：点杠杆上的孔，拖动可转视角');
+  if(window.__controls) __controls.enabled=(t!=='crank');
+  if(TOOL_TIPS[t]) say(TOOL_TIPS[t]+(TYPES[t]?`现在装在杠杆<b>${side(layer)}</b>。`:''));
+  else if(t==='erase') say('点一个孔，把上面的零件拿下来，放回零件盒。');
+  else if(t==='view') say('拖动画面转视角，双指或滚轮放大缩小。');
+  else say('在画面上绕着手柄画圈摇，或者按住黄色按钮。松手时竹蜻蜓就会飞出去。'); }
+function setLayer(L){ layer=L; $('layF').setAttribute('aria-pressed',String(L==='front')); $('layB').setAttribute('aria-pressed',String(L==='back'));
+  if(TYPES[tool]) say(`现在${TYPES[tool].name}会装在杠杆<b>${side(L)}</b>。`); }
+function changed(){ sol=solve(); refreshCounts(); routeHTML(); if(window.__rebuild) __rebuild(); }
+
+/* ================= 3D scene ================= */
+if(!window.THREE){ stage.insertAdjacentHTML('beforeend','<div class="nogl">三维引擎没有加载成功，请检查网络后刷新页面。</div>'); return; }
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.92;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.5,4000);
+const srgb=h=>new THREE.Color(h).convertSRGBToLinear();
+
+// sky background
+(()=>{ const c=document.createElement('canvas'); c.width=4; c.height=256; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,256); g.addColorStop(0,'#5FB2EC'); g.addColorStop(.6,'#BFE2F7'); g.addColorStop(1,'#EAF5FB');
+  x.fillStyle=g; x.fillRect(0,0,4,256); const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; scene.background=t; })();
+scene.fog=new THREE.Fog(srgb('#E4F2FA'),140,760);
+
+// studio-like environment for plastic reflections
+(()=>{ const pm=new THREE.PMREMGenerator(renderer); const env=new THREE.Scene();
+  const room=new THREE.Mesh(new THREE.BoxGeometry(40,24,40),new THREE.MeshBasicMaterial({color:new THREE.Color(0.55,0.6,0.62),side:THREE.BackSide})); env.add(room);
+  const panel=(w,h,p,r,i)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(i)})); m.position.set(...p); m.rotation.set(...r); env.add(m); };
+  panel(18,10,[0,11.9,0],[Math.PI/2,0,0],5); panel(10,8,[-19.9,5,0],[0,Math.PI/2,0],2.5); panel(8,8,[19.9,4,6],[0,-Math.PI/2,0],1.6);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshBasicMaterial({color:new THREE.Color(0.75,0.55,0.35)})); floor.rotation.x=-Math.PI/2; floor.position.y=-11.9; env.add(floor);
+  scene.environment=pm.fromScene(env,0.04).texture; pm.dispose(); })();
+
+// lights
+scene.add(new THREE.HemisphereLight(srgb('#E8F4FF'),srgb('#8A6A45'),0.45));
+const sun=new THREE.DirectionalLight(srgb('#FFF4E2'),1.35); sun.position.set(-14,30,18); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:80}); sun.shadow.bias=-0.0004; sun.shadow.radius=4;
+scene.add(sun); scene.add(sun.target);
+
+// wooden table
+(()=>{ const c=document.createElement('canvas'); c.width=c.height=1024; const x=c.getContext('2d');
+  const plankH=256; for(let p=0;p<4;p++){ const base=[ '#D8B686','#D2AE7C','#DDBC8E','#CFAA77'][p]; x.fillStyle=base; x.fillRect(0,p*plankH,1024,plankH);
+    for(let k=0;k<70;k++){ const y=p*plankH+Math.random()*plankH; x.strokeStyle=`rgba(120,80,40,${0.04+Math.random()*0.08})`; x.lineWidth=1+Math.random()*2.5; x.beginPath(); x.moveTo(0,y);
+      for(let X=0;X<=1024;X+=64) x.lineTo(X,y+Math.sin(X/180+k)*6+Math.sin(X/37+k*3)*1.5); x.stroke(); }
+    x.fillStyle='rgba(90,60,30,.35)'; x.fillRect(0,p*plankH,1024,3); }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(100,100); t.anisotropy=8;
+  const table=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000),new THREE.MeshStandardMaterial({map:t,roughness:.62,metalness:0}));
+  table.rotation.x=-Math.PI/2; table.rotation.z=0.25; table.receiveShadow=true; scene.add(table); })();
+
+// clouds for flight
+const cloudTex=(()=>{ const c=document.createElement('canvas'); c.width=256; c.height=128; const x=c.getContext('2d');
+  [[128,70,46],[80,80,34],[176,82,36],[110,52,32],[150,50,30]].forEach(([a,b,r])=>{ const g=x.createRadialGradient(a,b,0,a,b,r); g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.7,'rgba(255,255,255,.8)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.beginPath(); x.arc(a,b,r,0,7); x.fill(); });
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
+const MPU=62.5; // units per meter (1 unit = 1.6 cm, one hole spacing)
+[[2,-38,-60,46],[4.5,44,-80,60],[7,-60,-110,70],[10,30,-70,56],[14,-40,-90,70],[19,55,-120,80],[25,-20,-100,80]].forEach(([m,x,z,s])=>{
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,depthWrite:false,fog:false})); sp.position.set(x,10+m*MPU,z); sp.scale.set(s,s/2,1); scene.add(sp); });
+
+/* ---- materials ---- */
+const plastic=(hex,extra={})=>new THREE.MeshPhysicalMaterial(Object.assign({color:srgb(hex),roughness:.36,metalness:0,clearcoat:.5,clearcoatRoughness:.3},extra));
+const gearMat={L:plastic(TYPES.L.color),M:plastic(TYPES.M.color),S:plastic(TYPES.S.color)};
+const hubMat=plastic('#F3F0E6',{roughness:.45});
+const axleMat=plastic('#B9A8DC',{roughness:.5,clearcoat:.2});
+const handleMat=plastic('#86C23A'), knobMat=plastic('#5E9A26');
+const barMat=plastic('#F6F6F0',{roughness:.5,clearcoat:.25});
+const propMat=plastic('#9BD14A',{transparent:true,opacity:.9,side:THREE.DoubleSide,roughness:.28});
+const ringMat=plastic('#78BE33');
+
+// kit lattice cube texture (yellow cubes from the box)
+function latticeMaterial(hex){
+  const S=256, c=document.createElement('canvas'), a=document.createElement('canvas'); c.width=c.height=a.width=a.height=S;
+  const x=c.getContext('2d'), y=a.getContext('2d'); x.fillStyle=hex; x.fillRect(0,0,S,S); y.fillStyle='#fff'; y.fillRect(0,0,S,S);
+  x.strokeStyle='rgba(0,0,0,.18)'; x.lineWidth=4; x.strokeRect(2,2,S-4,S-4); x.beginPath(); x.moveTo(S/2,0); x.lineTo(S/2,S); x.moveTo(0,S/2); x.lineTo(S,S/2); x.stroke();
+  for(const [cx,cy] of [[64,64],[192,64],[64,192],[192,192]]){
+    const arm=34, w=12; y.fillStyle='#000';
+    y.fillRect(cx-w,cy-arm,2*w,2*arm); y.fillRect(cx-arm,cy-w,2*arm,2*w);
+    for(const [dx,dy] of [[-1,-1],[1,-1],[-1,1],[1,1]]) y.fillRect(cx+dx*22-7,cy+dy*22-7,14,14);
+    x.fillStyle='rgba(0,0,0,.25)'; x.fillRect(cx-w-2,cy-arm-2,2*w+4,2*arm+4); x.fillRect(cx-arm-2,cy-w-2,2*arm+4,2*w+4);
+  }
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const at=new THREE.CanvasTexture(a);
+  return new THREE.MeshPhysicalMaterial({color:0xffffff,map:t,alphaMap:at,alphaTest:.5,side:THREE.DoubleSide,roughness:.4,clearcoat:.4,clearcoatRoughness:.35});
+}
+
+/* ---- geometry ---- */
+const P=1, BAR_H=0.9, BAR_D=1.15, CUBE=1.9;
+const H0=2*CUBE+BAR_H/2;            // bar centre height
+const GT=0.36;                      // gear thickness
+const yGear=L=>H0+(L==='front'?1:-1)*(BAR_H/2+0.06+GT/2);
+const AX_TOP=H0+1.35, AX_BOT=H0-1.45, PROP_Y=H0+6.6;
+
+function gearGeometry(type){
+  const t=TYPES[type], T=t.T, R0=t.r*P, m=2*R0/T, ra=R0+m*.95, rf=R0-m*1.15, s=2*Math.PI/T;
+  const sh=new THREE.Shape();
+  for(let k=0;k<T;k++){ const a=k*s;
+    [[rf,-.5],[rf,-.3],[ra*.985,-.15],[ra,-.07],[ra,.07],[ra*.985,.15],[rf,.3]].forEach(([r,f],n)=>{ const px=r*Math.cos(a+f*s), py=r*Math.sin(a+f*s); (k||n)?sh.lineTo(px,py):sh.moveTo(px,py); }); }
+  sh.closePath();
+  // cross axle hole
+  const cr=new THREE.Path(), A=.2, B=.075; [[-B,-A],[B,-A],[B,-B],[A,-B],[A,B],[B,B],[B,A],[-B,A],[-B,B],[-A,B],[-A,-B],[-B,-B]].forEach(([px,py],n)=>n?cr.lineTo(px,py):cr.moveTo(px,py)); cr.closePath(); sh.holes.push(cr);
+  const nH=type==='L'?6:type==='M'?4:0, hr=type==='L'?.38:.27, rr=type==='L'?1.55:.98;
+  for(let k=0;k<nH;k++){ const a=k*2*Math.PI/nH+Math.PI/nH, h=new THREE.Path(); h.absarc(rr*Math.cos(a),rr*Math.sin(a),hr,0,Math.PI*2,true); sh.holes.push(h); }
+  const g=new THREE.ExtrudeGeometry(sh,{depth:GT-0.08,bevelEnabled:true,bevelThickness:.04,bevelSize:.035,bevelSegments:2,curveSegments:10});
+  g.translate(0,0,-(GT-0.08)/2); g.rotateX(-Math.PI/2); g.computeVertexNormals(); return g;
+}
+const GEO={L:gearGeometry('L'),M:gearGeometry('M'),S:gearGeometry('S')};
+const hubGeo=new THREE.CylinderGeometry(.34,.34,GT+.08,24); // raised hub ring
+const hubHole=new THREE.CylinderGeometry(.22,.22,GT+.1,6);
+const axleGeo=(h)=>new THREE.CylinderGeometry(.19,.19,h,16);
+
+function barGeometry(n){
+  const len=(n-1)*P+2*(4.2+1.0), w=BAR_D, sh=new THREE.Shape(), r=.12;
+  sh.moveTo(-len/2+r,-w/2); sh.lineTo(len/2-r,-w/2); sh.quadraticCurveTo(len/2,-w/2,len/2,-w/2+r); sh.lineTo(len/2,w/2-r); sh.quadraticCurveTo(len/2,w/2,len/2-r,w/2);
+  sh.lineTo(-len/2+r,w/2); sh.quadraticCurveTo(-len/2,w/2,-len/2,w/2-r); sh.lineTo(-len/2,-w/2+r); sh.quadraticCurveTo(-len/2,-w/2,-len/2+r,-w/2);
+  for(let i=0;i<n;i++){ const h=new THREE.Path(); h.absarc((i-(n-1)/2)*P,0,.27,0,Math.PI*2,true); sh.holes.push(h); }
+  const g=new THREE.ExtrudeGeometry(sh,{depth:BAR_H-0.08,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2,curveSegments:16});
+  g.translate(0,0,-(BAR_H-0.08)/2); g.rotateX(-Math.PI/2); return {g,len};
+}
+function bladeGeometry(){
+  const s=new THREE.Shape(); s.moveTo(.3,-.14); s.quadraticCurveTo(1.25,-.5,2.18,-.1); s.quadraticCurveTo(2.25,0,2.18,.1); s.quadraticCurveTo(1.3,.34,.3,.14); s.closePath();
+  const g=new THREE.ExtrudeGeometry(s,{depth:.04,bevelEnabled:false,curveSegments:12}); g.translate(0,0,-.02); g.rotateX(-Math.PI/2); return g;
+}
+const BLADE=bladeGeometry();
+function makeProp(){
+  const grp=new THREE.Group(), spin=new THREE.Group(); grp.add(spin);
+  for(let k=0;k<3;k++){ const pivot=new THREE.Group(); pivot.rotation.y=k*2*Math.PI/3; const b=new THREE.Mesh(BLADE,propMat); b.rotation.x=0.38; b.castShadow=true; pivot.add(b); spin.add(pivot); }
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.3,.07,10,96),ringMat); ring.rotation.x=Math.PI/2; ring.castShadow=true; spin.add(ring);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.42,.48,.5,24),plastic('#8CC63F')); hub.castShadow=true; spin.add(hub);
+  const blur=new THREE.Mesh(new THREE.CircleGeometry(2.36,64),new THREE.MeshBasicMaterial({color:srgb('#9BD14A'),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+  blur.rotation.x=-Math.PI/2; grp.add(blur); grp.userData={spin,blur,blades:spin.children.slice(0,3)}; return grp;
+}
+function setPropSpin(p,ang,rev){ p.userData.spin.rotation.y=ang; const b=Math.min(1,rev/12);
+  p.userData.blur.material.opacity=0.32*b; propMat.opacity=0.9; p.userData.blades.forEach(pv=>pv.children[0].visible=b<0.85); }
+function makeHandle(){
+  const g=new THREE.Group();
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.42,24),handleMat); g.add(hub);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(2.0,.32,.56),handleMat); arm.position.x=1.0; g.add(arm);
+  const knob=new THREE.Mesh(new THREE.CylinderGeometry(.36,.4,1.25,24),knobMat); knob.position.set(1.95,.62,0); g.add(knob);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(.36,20,12,0,Math.PI*2,0,Math.PI/2),knobMat); cap.position.set(1.95,1.24,0); g.add(cap);
+  g.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} }); return g;
+}
+function numberSprite(n){
+  const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle='rgba(255,255,255,.92)'; x.beginPath(); x.arc(32,32,26,0,7); x.fill();
+  x.fillStyle='#1E2A17'; x.font='800 30px Nunito, sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(String(n),32,34);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true})); s.scale.set(.62,.62,1); s.renderOrder=5; return s;
+}
+
+/* ---- dynamic rig ---- */
+const rig=new THREE.Group(); scene.add(rig);
+const cubeMat=latticeMaterial('#FFC20E'), cubeMat2=latticeMaterial('#F6F6F0');
+let parts={gears:[],axles:[],handle:null,props:{}}, labels=[];
+const hx=i=>(i-(N-1)/2)*P;
+const markMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,depthWrite:false});
+const ghost=new THREE.Mesh(GEO.S,new THREE.MeshBasicMaterial({color:0x22aa44,transparent:true,opacity:.45,depthWrite:false})); ghost.visible=false; scene.add(ghost);
+const eraseRing=new THREE.Mesh(new THREE.TorusGeometry(.75,.06,8,48),new THREE.MeshBasicMaterial({color:srgb('#E8412F')})); eraseRing.rotation.x=Math.PI/2; eraseRing.visible=false; scene.add(eraseRing);
+
+function rebuild(){
+  rig.clear(); parts={gears:[],axles:[],handle:null,props:{}};
+  const {g,len}=barGeometry(N); const bar=new THREE.Mesh(g,barMat); bar.position.y=H0; bar.castShadow=bar.receiveShadow=true; rig.add(bar);
+  // support towers of kit cubes at both ends
+  const cubeGeo=new THREE.BoxGeometry(CUBE,CUBE,CUBE);
+  for(const sgn of [-1,1]) for(let k=0;k<2;k++){ const c=new THREE.Mesh(cubeGeo,k===0?cubeMat:cubeMat2); c.position.set(sgn*(len/2-CUBE/2-.05),CUBE/2+k*CUBE,0); c.castShadow=c.receiveShadow=true; rig.add(c); }
+  for(let i=0;i<N;i++){ const s=numberSprite(i+1); s.position.set(hx(i),H0-.05,BAR_D/2+.32); rig.add(s); }
+  holes.forEach((h,i)=>{
+    for(const L of ['front','back']){ const t=h[L]; if(!t) continue;
+      const grp=new THREE.Group(); grp.position.set(hx(i),yGear(L),0);
+      const m=new THREE.Mesh(GEO[t],gearMat[t]); m.castShadow=m.receiveShadow=true; grp.add(m);
+      const hub=new THREE.Mesh(hubGeo,hubMat); hub.castShadow=true; grp.add(hub);
+      grp.userData={i,L,pop:lastPlaced===i+':'+L?0:1}; rig.add(grp); parts.gears.push(grp); }
+    if(hasAxle(h)){ const top=h.prop?PROP_Y:AX_TOP, hgt=top-AX_BOT; const a=new THREE.Mesh(axleGeo(hgt),axleMat);
+      a.position.set(hx(i),AX_BOT+hgt/2,0); a.castShadow=true; a.userData={i}; rig.add(a); parts.axles.push(a);
+      const cap=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.16,16),axleMat); cap.position.set(0,-hgt/2,0); a.add(cap); }
+    if(h.handle){ const hd=makeHandle(); hd.position.set(hx(i),yGear('front')+GT/2+.32,0); hd.userData={i,pop:lastPlaced===i+':handle'?0:1}; rig.add(hd); parts.handle=hd; }
+    if(h.prop){ const p=makeProp(); p.position.set(hx(i),PROP_Y,0); p.userData.i=i; p.userData.pop=lastPlaced===i+':prop'?0:1; scene.add(p); parts.props[i]=p; }
+  });
+  // remove orphan props from scene
+  scene.children.filter(o=>o.userData&&o.userData.spin&&!Object.values(parts.props).includes(o)).forEach(o=>scene.remove(o));
+}
+window.__rebuild=rebuild;
+
+/* ---- camera & controls ---- */
+const controls=new THREE.OrbitControls(camera,renderer.domElement); window.__controls=controls;
+controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false;
+controls.minPolarAngle=.12*Math.PI; controls.maxPolarAngle=.49*Math.PI; controls.minDistance=10; controls.maxDistance=90;
+controls.enabled=false;
+let followY=0;
+function frameView(){
+  const w=stage.clientWidth, h=stage.clientHeight, asp=w/h; const halfW=(N-1)/2+6.4;
+  const tanH=Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*asp; const dist=Math.max(22,(halfW/tanH)*1.02);
+  const el=THREE.MathUtils.degToRad(30), az=THREE.MathUtils.degToRad(-12);
+  controls.target.set(0,H0+1.2,0); followY=0;
+  camera.position.set(Math.sin(az)*Math.cos(el)*dist, H0+1.2+Math.sin(el)*dist, Math.cos(az)*Math.cos(el)*dist); controls.update();
+}
+function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+new ResizeObserver(()=>resize()).observe(stage);
+
+/* ---- picking ---- */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),-(H0+BAR_H/2)), hitP=new THREE.Vector3();
+function pickHole(e){ const r=renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera); if(!ray.ray.intersectPlane(plane,hitP)) return -1;
+  if(Math.abs(hitP.z)>3.6) return -1; const i=Math.round(hitP.x/P+(N-1)/2); if(i<0||i>=N) return -1; if(Math.abs(hitP.x-hx(i))>.6) return -1; return i; }
+const tmpV=new THREE.Vector3();
+function handleScreen(){ tmpV.set(hx(sol.hi),yGear('front'),0).project(camera); const r=renderer.domElement.getBoundingClientRect();
+  return {x:r.left+(tmpV.x+1)/2*r.width, y:r.top+(1-tmpV.y)/2*r.height}; }
+const angAt=e=>{ const c=handleScreen(); return Math.atan2(e.clientY-c.y,e.clientX-c.x); };
+let downAt=null;
+const el=renderer.domElement;
+el.addEventListener('pointerdown',e=>{
+  downAt={x:e.clientX,y:e.clientY,t:performance.now()};
+  if(tool==='crank'){ if(sol.hi<0){ say('先装一个手柄：在零件盒里点「手柄」，再点一个孔。','warn'); return; }
+    dragging=true; dragAccum=0; lastAng=angAt(e); el.setPointerCapture(e.pointerId); }
+});
+el.addEventListener('pointermove',e=>{
+  if(dragging){ const a=angAt(e); let d=a-lastAng; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; dragAccum-=d; lastAng=a; }
+  if(e.pointerType==='mouse') updateGhost(pickHole(e)); else updateGhost(-1);
+});
+el.addEventListener('pointerleave',()=>updateGhost(-1));
+function endPtr(e){
+  if(dragging){ dragging=false; release(); }
+  else if(downAt && tool!=='crank' && tool!=='view'){ const moved=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y);
+    if(moved<8 && performance.now()-downAt.t<700){ const i=pickHole(e); if(i>=0) tryPlace(i); } }
+  downAt=null; }
+el.addEventListener('pointerup',endPtr); el.addEventListener('pointercancel',()=>{ if(dragging){dragging=false;release();} downAt=null; });
+
+function updateGhost(i){
+  ghost.visible=false; eraseRing.visible=false; if(i<0) return;
+  if(tool==='erase'){ eraseRing.position.set(hx(i),H0+BAR_H/2+.05,0); eraseRing.visible=true; return; }
+  if(TYPES[tool]){ const c=checkGear(i,tool,layer); const ok=c.ok&&!holes[i][layer];
+    ghost.geometry=GEO[tool]; ghost.material.color.set(ok?(c.meshes?0x1fae3f:0xffffff):0xe8412f); ghost.position.set(hx(i),yGear(layer),0); ghost.rotation.y=0; ghost.visible=true; }
+}
+
+/* ---- height tags ---- */
+const tagEls=[];
+function tagFor(k){ if(!tagEls[k]){ const d=document.createElement('div'); d.className='tag'; stage.append(d); tagEls[k]=d; } return tagEls[k]; }
+
+/* ================= loop ================= */
+let last=performance.now(), uiT=0, tNow=0;
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now; tNow+=dt;
+  if(dragging){ const target=dragAccum/Math.max(dt,1e-3); dragAccum=0; handOmega+=(target-handOmega)*Math.min(1,dt*10); }
+  else if(holding){ const s=handOmega<0?-1:1; handOmega+=(s*AUTO-handOmega)*Math.min(1,dt*2.4); }
+  else handOmega*=Math.exp(-dt/0.5);
+  handOmega=Math.max(-MAXH,Math.min(MAXH,handOmega));
+  if(sol.jam||sol.hi<0){ if(sol.jam&&Math.abs(handOmega)>1){ shake=.06; if(st.dataset.k!=='jam'){ say('卡住了！有一圈齿轮互相顶着，转不动。拿掉其中一个试试。','warn'); st.dataset.k='jam'; } } handOmega=0; }
+  else st.dataset.k='';
+  shake*=Math.exp(-dt/0.2); theta+=handOmega*dt;
+  rig.position.x=sol.jam?Math.sin(tNow*70)*shake:0;
+
+  const ang=(i,L)=>(sol.rho[i]!==null&&!sol.jam?sol.rho[i]*theta:0)+(L?sol.psi[i][L]:0);
+  for(const g of parts.gears){ g.rotation.y=ang(g.userData.i,g.userData.L); if(g.userData.pop<1){ g.userData.pop=Math.min(1,g.userData.pop+dt*5); const s=.6+.4*easeOut(g.userData.pop); g.scale.setScalar(s);} }
+  for(const a of parts.axles) a.rotation.y=ang(a.userData.i);
+  if(parts.handle){ parts.handle.rotation.y=theta+Math.PI*0.75; const u=parts.handle.userData; if(u.pop<1){ u.pop=Math.min(1,u.pop+dt*5); parts.handle.scale.setScalar(.6+.4*easeOut(u.pop)); } }
+
+  holes.forEach((h,i)=>{ if(!h.prop) return; const p=parts.props[i]; if(!p) return;
+    if(h.ps==='on'){ const r=sol.rho[i]; if(r!==null&&!sol.jam) h.pa+=r*handOmega*dt; if(propRev(i)>0.5&&!goals.spin){ goals.spin=true; saveGoals(); }
+      p.visible=true; p.position.set(hx(i)+rig.position.x,PROP_Y,0); p.rotation.set(0,0,0); setPropSpin(p,h.pa,propRev(i));
+      if(p.userData.pop<1){ p.userData.pop=Math.min(1,p.userData.pop+dt*4); p.scale.setScalar(.5+.5*easeOut(p.userData.pop)); } else p.scale.setScalar(1); }
+    else if(h.ps==='wait'){ h.wait-=dt; if(h.wait<=0){ h.ps='on'; p.userData.pop=0; } } });
+
+  let topY=0;
+  flyers=flyers.filter((f,k)=>{
+    const p=parts.props[f.i]; const tag=tagFor(k);
+    if(f.landed>0){ f.landed-=dt; if(p){ p.position.y=Math.max(0.07,p.position.y); setPropSpin(p,f.ang,0);} if(f.landed<=0){ const h=holes[f.i]; if(h){ h.ps='wait'; h.wait=.2; } if(p) p.visible=false; tag.style.display='none'; return false; } return true; }
+    f.t+=dt; f.w*=Math.exp(-dt/1.8);
+    const a=G*((f.w/TAKEOFF)**2)-G-0.45*f.v*Math.abs(f.v); f.v+=a*dt; f.y+=f.v*dt; f.ang+=f.w*2*Math.PI*dt; f.max=Math.max(f.max,f.y);
+    const wy=PROP_Y+f.y*MPU;
+    if(p){ const drift=Math.min(1,f.t/2.2); p.position.set(hx(f.i)+Math.sin(f.t*1.3)*1.2*drift, wy, drift*6.5);
+      p.rotation.set(Math.sin(f.t*2.1)*.08*drift,0,Math.cos(f.t*1.7)*.08*drift); setPropSpin(p,f.ang,f.w); }
+    topY=Math.max(topY,wy);
+    if(wy<=0.25 && f.t>0.3){ // landed on the table
+      if(p){ p.position.y=0.1; p.rotation.set(0,0,0); }
+      const m=f.max; __sfx&&__sfx.land(m>best); let msg=`飞了 <b>${m.toFixed(1)} 米</b>！`;
+      if(m>best){ best=m; try{localStorage.setItem('zqt-best',String(best));}catch(e){} msg+=' 新纪录！'; }
+      if(m>=3) goals.m3=true; if(m>=8) goals.m8=true; saveGoals();
+      say(msg+' 竹蜻蜓马上装回长轴上，可以再摇一次。','good'); f.landed=1.2; f.v=0; tag.style.display='none'; return true;
+    }
+    // tag
+    tmpV.copy(p?p.position:new THREE.Vector3()).project(camera);
+    tag.style.display=tmpV.z<1?'block':'none'; tag.style.left=((tmpV.x+1)/2*stage.clientWidth)+'px'; tag.style.top=((1-tmpV.y)/2*stage.clientHeight)+'px';
+    tag.textContent=Math.max(0,f.y).toFixed(1)+' 米';
+    return true;
+  });
+  tagEls.slice(flyers.length).forEach(t=>t&&(t.style.display='none'));
+
+  // camera follows a flying copter
+  const want=Math.max(0, topY-(PROP_Y+2));
+  const dy=(want-followY)*Math.min(1,dt*(want>followY?5:2)); followY+=dy; camera.position.y+=dy; controls.target.y+=dy;
+  { let pr=0, fw=0; holes.forEach((h,i)=>{ if(h.prop&&h.ps==='on') pr=Math.max(pr,propRev(i)); });
+    flyers.forEach(f=>{ if(!f.landed) fw=Math.max(fw,f.w); });
+    __sfx&&__sfx.tick(dt,sol.jam?0:Math.abs(handOmega)/(2*Math.PI),pr,fw,fw>0); }
+  controls.update();
+  renderer.render(scene,camera);
+  uiT+=dt; if(uiT>.08){ uiT=0; updateMeters(); }
+  requestAnimationFrame(frame);
+}
+const easeOut=x=>1-Math.pow(1-x,3);
+
+/* ---- buttons ---- */
+const hold=$('hold');
+function startHold(e){ if(e) e.preventDefault(); if(sol.hi<0){ say('先装一个手柄：在零件盒里点「手柄」，再点一个孔。','warn'); return; } holding=true; hold.classList.add('on'); }
+function endHold(){ if(!holding) return; holding=false; hold.classList.remove('on'); release(); }
+hold.addEventListener('pointerdown',e=>{ hold.setPointerCapture(e.pointerId); startHold(e); });
+hold.addEventListener('pointerup',endHold); hold.addEventListener('pointercancel',endHold); hold.addEventListener('contextmenu',e=>e.preventDefault());
+hold.addEventListener('keydown',e=>{ if((e.key===' '||e.key==='Enter')&&!e.repeat){ e.preventDefault(); startHold(); } });
+hold.addEventListener('keyup',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); endHold(); } });
+$('m-crank').onclick=()=>setTool('crank'); $('m-view').onclick=()=>setTool('view'); $('m-erase').onclick=()=>setTool('erase');
+$('layF').onclick=()=>setLayer('front'); $('layB').onclick=()=>setLayer('back');
+$('resetView').onclick=frameView;
+const syncSound=()=>{ $('musicBtn').setAttribute('aria-pressed',String(__sfx.music)); $('musicBtn').textContent=__sfx.music?'音乐 开':'音乐 关';
+  $('sfxBtn').setAttribute('aria-pressed',String(__sfx.sfx)); $('sfxBtn').textContent=__sfx.sfx?'音效 开':'音效 关'; };
+$('musicBtn').onclick=()=>{ __sfx.init(); __sfx.setMusic(!__sfx.music); syncSound(); };
+$('sfxBtn').onclick=()=>{ __sfx.init(); __sfx.setSfx(!__sfx.sfx); syncSound(); };
+syncSound();
+$('bookBtn').onclick=()=>{ loadBook(); frameView(); setTool('crank'); say('这是书上第 68 页的竹蜻蜓：大带小 ×3，再中带小 ×2，一共 ×6。','good'); };
+$('clearBtn').onclick=()=>{ makeHoles(N); flyers=[]; lastPlaced=null; changed(); setTool('L'); say('杠杆清空了。先装一个大齿轮和手柄吧。'); };
+
+buildParts(); renderGoals(); resize(); loadBook(); frameView(); setTool('crank');
+requestAnimationFrame(t=>{ last=t; frame(t); });
+})();
+</script>
+
+</body>
+</html>
