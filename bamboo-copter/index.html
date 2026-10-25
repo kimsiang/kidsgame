@@ -751,11 +751,12 @@ function frame(now){
   if(lead && !fcam.saved){ fcam.saved={pos:camera.position.clone(),tgt:controls.target.clone()}; fcam.focus.copy(lead.position); controls.enabled=false; controls.maxPolarAngle=.9*Math.PI; }
   fcam.blend+=((lead?1:0)-fcam.blend)*Math.min(1,dt*(lead?5:2.2));
   if(fcam.saved){
-    if(lead) fcam.focus.lerp(lead.position,Math.min(1,dt*16));
+    if(lead){ const k=Math.min(1,dt*8); fcam.focus.x+=(lead.position.x-fcam.focus.x)*k; fcam.focus.z+=(lead.position.z-fcam.focus.z)*k; fcam.focus.y=lead.position.y; }
     const sv=fcam.saved, dir=new THREE.Vector3(sv.pos.x-sv.tgt.x,0,sv.pos.z-sv.tgt.z).normalize();
     const D=17, fp=fcam.focus.clone().addScaledVector(dir,D); fp.y=Math.max(3,fcam.focus.y-D*.55);
     const b=easeInOut(fcam.blend);
     camera.position.lerpVectors(sv.pos,fp,b); controls.target.lerpVectors(sv.tgt,fcam.focus,b);
+    if(lead){ const gap=fcam.focus.y-controls.target.y; if(gap>3){ controls.target.y+=gap-3; camera.position.y+=gap-3; } }
     if(!lead && fcam.blend<.01){ camera.position.copy(sv.pos); controls.target.copy(sv.tgt); fcam.saved=null; fcam.blend=0; controls.maxPolarAngle=.49*Math.PI; controls.enabled=(tool!=='crank'); }
   }
   { let pr=0, fw=0; holes.forEach((h,i)=>{ if(h.prop&&h.ps==='on') pr=Math.max(pr,propRev(i)); });
