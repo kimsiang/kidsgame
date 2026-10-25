@@ -448,7 +448,7 @@ function setTool(t){ tool=t;
   document.querySelectorAll('.part[data-tool]').forEach(r=>r.setAttribute('aria-pressed',String(r.dataset.tool===t)));
   for(const m of ['crank','view','erase']) $('m-'+m).setAttribute('aria-pressed',String(t===m));
   $('hudMode').textContent=HUD[t]||(PARTS.find(p=>p.k===t).name+'：点杠杆上的孔，拖动可转视角');
-  if(window.__controls) __controls.enabled=(t!=='crank');
+  if(window.__controls && !(window.__fcam&&__fcam.saved)) __controls.enabled=(t!=='crank');
   if(TOOL_TIPS[t]) say(TOOL_TIPS[t]+(TYPES[t]?`现在装在杠杆<b>${side(layer)}</b>。`:''));
   else if(t==='erase') say('点一个孔，把上面的零件拿下来，放回零件盒。');
   else if(t==='view') say('拖动画面转视角，双指或滚轮放大缩小。');
@@ -570,16 +570,21 @@ function bladeGeometry(){
   const g=new THREE.ExtrudeGeometry(s,{depth:.04,bevelEnabled:false,curveSegments:12}); g.translate(0,0,-.02); g.rotateX(-Math.PI/2); return g;
 }
 const BLADE=bladeGeometry();
+const glowTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,250,200,.42)'); g.addColorStop(.35,'rgba(230,255,150,.2)'); g.addColorStop(1,'rgba(200,255,120,0)'); x.fillStyle=g; x.fillRect(0,0,128,128);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
 function makeProp(){
   const grp=new THREE.Group(), spin=new THREE.Group(); grp.add(spin);
   for(let k=0;k<3;k++){ const pivot=new THREE.Group(); pivot.rotation.y=k*2*Math.PI/3; const b=new THREE.Mesh(BLADE,propMat); b.rotation.x=0.38; b.castShadow=true; pivot.add(b); spin.add(pivot); }
   const ring=new THREE.Mesh(new THREE.TorusGeometry(2.3,.07,10,96),ringMat); ring.rotation.x=Math.PI/2; ring.castShadow=true; spin.add(ring);
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(.42,.48,.5,24),plastic('#8CC63F')); hub.castShadow=true; spin.add(hub);
   const blur=new THREE.Mesh(new THREE.CircleGeometry(2.36,64),new THREE.MeshBasicMaterial({color:srgb('#9BD14A'),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
-  blur.rotation.x=-Math.PI/2; grp.add(blur); grp.userData={spin,blur,blades:spin.children.slice(0,3)}; return grp;
+  blur.rotation.x=-Math.PI/2; grp.add(blur);
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); glow.scale.set(6.5,6.5,1); glow.visible=false; grp.add(glow);
+  grp.userData={spin,blur,glow,blades:spin.children.slice(0,3)}; return grp;
 }
-function setPropSpin(p,ang,rev){ p.userData.spin.rotation.y=ang; const b=Math.min(1,rev/12);
-  p.userData.blur.material.opacity=0.32*b; propMat.opacity=0.9; p.userData.blades.forEach(pv=>pv.children[0].visible=b<0.85); }
+function setPropSpin(p,ang,rev,flying=false){ p.userData.spin.rotation.y=ang; const b=Math.min(1,rev/12);
+  p.userData.glow.visible=flying; p.userData.blur.material.opacity=(flying?.6:.32)*b; propMat.opacity=0.9; p.userData.blades.forEach(pv=>pv.children[0].visible=b<0.85); }
 function makeHandle(){
   const g=new THREE.Group();
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.42,24),handleMat); g.add(hub);
@@ -632,12 +637,13 @@ const controls=new THREE.OrbitControls(camera,renderer.domElement); window.__con
 controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false;
 controls.minPolarAngle=.12*Math.PI; controls.maxPolarAngle=.49*Math.PI; controls.minDistance=10; controls.maxDistance=90;
 controls.enabled=false;
-let followY=0;
+const fcam={blend:0,saved:null,focus:new THREE.Vector3()}; window.__fcam=fcam;
+const easeInOut=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
 function frameView(){
   const w=stage.clientWidth, h=stage.clientHeight, asp=w/h; const halfW=(N-1)/2+6.4;
   const tanH=Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*asp; const dist=Math.max(22,(halfW/tanH)*1.02);
   const el=THREE.MathUtils.degToRad(30), az=THREE.MathUtils.degToRad(-12);
-  controls.target.set(0,H0+1.2,0); followY=0;
+  controls.target.set(0,H0+1.2,0); fcam.saved=null; fcam.blend=0; controls.maxPolarAngle=.49*Math.PI;
   camera.position.set(Math.sin(az)*Math.cos(el)*dist, H0+1.2+Math.sin(el)*dist, Math.cos(az)*Math.cos(el)*dist); controls.update();
 }
 function resize(){ const w=stage.clientWidth, h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
@@ -706,7 +712,7 @@ function frame(now){
       if(p.userData.pop<1){ p.userData.pop=Math.min(1,p.userData.pop+dt*4); p.scale.setScalar(.5+.5*easeOut(p.userData.pop)); } else p.scale.setScalar(1); }
     else if(h.ps==='wait'){ h.wait-=dt; if(h.wait<=0){ h.ps='on'; p.userData.pop=0; } } });
 
-  let topY=0;
+  let topY=0; const tagQ=[];
   flyers=flyers.filter((f,k)=>{
     const p=parts.props[f.i]; const tag=tagFor(k);
     if(f.landed>0){ f.landed-=dt; if(p){ p.position.y=Math.max(0.07,p.position.y); setPropSpin(p,f.ang,0);} if(f.landed<=0){ const h=holes[f.i]; if(h){ h.ps='wait'; h.wait=.2; } if(p) p.visible=false; tag.style.display='none'; return false; } return true; }
@@ -714,7 +720,7 @@ function frame(now){
     const a=G*((f.w/TAKEOFF)**2)-G-0.45*f.v*Math.abs(f.v); f.v+=a*dt; f.y+=f.v*dt; f.ang+=f.w*2*Math.PI*dt; f.max=Math.max(f.max,f.y);
     const wy=PROP_Y+f.y*MPU;
     if(p){ const drift=Math.min(1,f.t/2.2); p.position.set(hx(f.i)+Math.sin(f.t*1.3)*1.2*drift, wy, drift*6.5);
-      p.rotation.set(Math.sin(f.t*2.1)*.08*drift,0,Math.cos(f.t*1.7)*.08*drift); setPropSpin(p,f.ang,f.w); }
+      p.rotation.set(Math.sin(f.t*2.1)*.08*drift,0,Math.cos(f.t*1.7)*.08*drift); setPropSpin(p,f.ang,f.w,true); }
     topY=Math.max(topY,wy);
     if(wy<=0.25 && f.t>0.3){ // landed on the table
       if(p){ p.position.y=0.1; p.rotation.set(0,0,0); }
@@ -723,21 +729,35 @@ function frame(now){
       if(m>=3) goals.m3=true; if(m>=8) goals.m8=true; saveGoals();
       say(msg+' 竹蜻蜓马上装回长轴上，可以再摇一次。','good'); f.landed=1.2; f.v=0; tag.style.display='none'; return true;
     }
-    // tag
-    tmpV.copy(p?p.position:new THREE.Vector3()).project(camera);
-    tag.style.display=tmpV.z<1?'block':'none'; tag.style.left=((tmpV.x+1)/2*stage.clientWidth)+'px'; tag.style.top=((1-tmpV.y)/2*stage.clientHeight)+'px';
-    tag.textContent=Math.max(0,f.y).toFixed(1)+' 米';
+    tagQ.push({tag,p,f});
     return true;
   });
   tagEls.slice(flyers.length).forEach(t=>t&&(t.style.display='none'));
 
-  // camera follows a flying copter
-  const want=Math.max(0, topY-(PROP_Y+2));
-  const dy=(want-followY)*Math.min(1,dt*(want>followY?5:2)); followY+=dy; camera.position.y+=dy; controls.target.y+=dy;
+  // flight camera: lock onto the highest copter and look slightly up, so it flies against the sky
+  let lead=null; for(const f of flyers){ if(!(f.landed>0)){ const p=parts.props[f.i]; if(p&&(!lead||p.position.y>lead.position.y)) lead=p; } }
+  if(lead && !fcam.saved){ fcam.saved={pos:camera.position.clone(),tgt:controls.target.clone()}; fcam.focus.copy(lead.position); controls.enabled=false; controls.maxPolarAngle=.9*Math.PI; }
+  fcam.blend+=((lead?1:0)-fcam.blend)*Math.min(1,dt*(lead?5:2.2));
+  if(fcam.saved){
+    if(lead) fcam.focus.lerp(lead.position,Math.min(1,dt*16));
+    const sv=fcam.saved, dir=new THREE.Vector3(sv.pos.x-sv.tgt.x,0,sv.pos.z-sv.tgt.z).normalize();
+    const D=17, fp=fcam.focus.clone().addScaledVector(dir,D); fp.y=Math.max(3,fcam.focus.y-D*.55);
+    const b=easeInOut(fcam.blend);
+    camera.position.lerpVectors(sv.pos,fp,b); controls.target.lerpVectors(sv.tgt,fcam.focus,b);
+    if(!lead && fcam.blend<.01){ camera.position.copy(sv.pos); controls.target.copy(sv.tgt); fcam.saved=null; fcam.blend=0; controls.maxPolarAngle=.49*Math.PI; controls.enabled=(tool!=='crank'); }
+  }
   { let pr=0, fw=0; holes.forEach((h,i)=>{ if(h.prop&&h.ps==='on') pr=Math.max(pr,propRev(i)); });
     flyers.forEach(f=>{ if(!f.landed) fw=Math.max(fw,f.w); });
     __sfx&&__sfx.tick(dt,sol.jam?0:Math.abs(handOmega)/(2*Math.PI),pr,fw,fw>0); }
-  controls.update();
+  controls.update(); camera.updateMatrixWorld();
+  for(const {tag,p,f} of tagQ){
+    tmpV.copy(p?p.position:new THREE.Vector3()).project(camera);
+    { const SW=stage.clientWidth, SH=stage.clientHeight; let sx=(tmpV.x+1)/2*SW, sy=(1-tmpV.y)/2*SH;
+      if(tmpV.z>1){ sx=SW-sx; sy=0; }
+      const above=sy<0, out=above||sx<0||sx>SW||sy>SH;
+      tag.style.display='block'; tag.style.left=Math.min(SW-50,Math.max(50,sx))+'px'; tag.style.top=Math.min(SH-4,Math.max(80,sy))+'px';
+      tag.textContent=(out&&above?'↑ ':'')+Math.max(0,f.y).toFixed(1)+' 米'; }
+  }
   renderer.render(scene,camera);
   uiT+=dt; if(uiT>.08){ uiT=0; updateMeters(); }
   requestAnimationFrame(frame);
