@@ -168,18 +168,18 @@ aside{display:flex;flex-direction:column;gap:14px;min-width:0}
   <section class="card learn">
     <div>
       <h3>为什么大带小会变快</h3>
-      <p>大齿轮转一圈，要推过 24 个齿。小齿轮只有 8 个齿，被推过 24 个齿就要转 3 圈。所以手摇 1 圈，小齿轮转 3 圈。</p>
+      <p>大齿轮转一圈，要推过 48 个齿。小齿轮只有 8 个齿，被推过 48 个齿就要转 6 圈。所以手摇 1 圈，小齿轮转 6 圈。</p>
       <div class="formula">倍数 = 主动齿数 ÷ 被动齿数</div>
     </div>
     <div>
       <h3>多级变速，倍数相乘</h3>
-      <p>小齿轮和同一根长轴上另一面的齿轮一起转。这个齿轮再去带下一个小齿轮，就是第二级。两级 ×3 和 ×2，合起来就是 ×6。</p>
-      <div class="formula">×3 × ×2 = ×6</div>
+      <p>小齿轮和同一根长轴上另一面的齿轮一起转。这个齿轮再去带下一个小齿轮，就是第二级。两级 ×6 和 ×2，合起来就是 ×12。</p>
+      <div class="formula">×6 × ×2 = ×12</div>
     </div>
     <div>
       <h3>怎样才能咬合</h3>
       <p>两个齿轮在同一面，中心要隔得刚刚好，齿才会咬住。太近会撞上，太远就碰不到。</p>
-      <div class="rule"><span class="chip">小+小 隔2孔</span><span class="chip">小+中 隔3孔</span><span class="chip">小+大 隔4孔</span><span class="chip">中+中 隔4孔</span><span class="chip">中+大 隔5孔</span><span class="chip">大+大 隔6孔</span></div>
+      <div class="rule"><span class="chip">小+小 隔2孔</span><span class="chip">小+中 隔3孔</span><span class="chip">小+大 隔7孔</span><span class="chip">中+中 隔4孔</span><span class="chip">中+大 隔8孔</span><span class="chip">大+大 隔12孔</span></div>
     </div>
   </section>
 </div>
@@ -272,7 +272,7 @@ const api={
     if(!ac) return; energy=Math.min(1,propRev/10); flying=isFlying;
     setWhirr(whirr,propRev); setWhirr(fly,flyW);
     // gear teeth clicking past each other (big-gear teeth per second, thinned when fast)
-    toothAcc+=handRev*24*dt; clickBudget=Math.min(1,clickBudget+dt*22);
+    toothAcc+=handRev*48*dt; clickBudget=Math.min(1,clickBudget+dt*22);
     if(toothAcc>=1){ toothAcc%=1; if(clickBudget>=1){ clickBudget=0; noise(sfxBus,ac.currentTime,.09,.018,'bandpass',3200+Math.random()*800,null,3); } }
   }
 };
@@ -291,7 +291,7 @@ function say(html,kind=''){ if(kind==='warn'&&window.__sfx) __sfx.warn(); st.inn
 
 /* ================= game model (same rules as the kit) ================= */
 const TYPES={
-  L:{name:'大齿轮',T:24,r:3,color:'#E33A28',hl:'#FF8A6E'},
+  L:{name:'大齿轮',T:48,r:6,color:'#E33A28',hl:'#FF8A6E'},
   M:{name:'中齿轮',T:16,r:2,color:'#2A78D6',hl:'#7DB5F2'},
   S:{name:'小齿轮',T:8, r:1,color:'#63B83C',hl:'#A9E07F'},
 };
@@ -302,8 +302,8 @@ let inv={...BOOK_INV}, N=13, holes=[];
 let tool='crank', layer='front';
 let handOmega=0, theta=0, dragging=false, dragAccum=0, lastAng=0, holding=false;
 let flyers=[], best=0, sol=null, shake=0, lastPlaced=null;
-let goals={spin:false,x4:false,fly:false,m3:false,m8:false};
-try{ best=parseFloat(localStorage.getItem('zqt-best'))||0; const g=JSON.parse(localStorage.getItem('zqt-goals')||'null'); if(g) goals={...goals,...g}; }catch(e){}
+let goals={spin:false,x4:false,fly:false,m10:false,m30:false};
+try{ best=parseFloat(localStorage.getItem('zqt48-best'))||0; const g=JSON.parse(localStorage.getItem('zqt48-goals')||'null'); if(g) goals={...goals,...g}; }catch(e){}
 const emptyHole=()=>({front:null,back:null,handle:false,prop:false,ps:'on',wait:0,pa:0});
 function makeHoles(n){ holes=Array.from({length:n},emptyHole); N=n; }
 const hasAxle=h=>!!(h.front||h.back||h.handle||h.prop);
@@ -340,9 +340,9 @@ function propRev(i){ return sol&&sol.rho[i]!==null&&!sol.jam ? Math.abs(sol.rho[
 
 function loadBook(){
   inv={...BOOK_INV}; makeHoles(13);
-  holes[10].front='L'; holes[10].handle=true;
-  holes[6].front='S'; holes[6].back='M';
-  holes[3].back='S'; holes[3].prop=true;
+  holes[11].front='L'; holes[11].handle=true;
+  holes[4].front='S'; holes[4].back='M';
+  holes[1].back='S'; holes[1].prop=true;
   flyers=[]; lastPlaced=null; changed();
 }
 
@@ -381,17 +381,17 @@ function release(){ let launched=0, weak=0;
 }
 
 /* ================= UI ================= */
-const GOALS=[['spin','让螺旋桨转起来'],['x4','加速倍数达到 ×4 以上'],['fly','让竹蜻蜓飞起来'],['m3','飞过 3 米'],['m8','飞过 8 米（提示：大齿轮多拿一个，做出 ×9）']];
+const GOALS=[['spin','让螺旋桨转起来'],['x4','加速倍数达到 ×4 以上'],['fly','让竹蜻蜓飞起来'],['m10','飞过 10 米'],['m30','飞过 30 米（提示：大齿轮多拿一个，做出 ×18 以上）']];
 function renderGoals(){
   $('goals').innerHTML=GOALS.map(([k,t])=>`<li class="${goals[k]?'done':''}"><span class="tick">${goals[k]?'✓':''}</span><span>${t}</span></li>`).join('');
   $('best').textContent=best>0?`最高纪录：${best.toFixed(1)} 米`:'最高纪录：还没飞过'; }
-function saveGoals(){ try{localStorage.setItem('zqt-goals',JSON.stringify(goals));}catch(e){} renderGoals(); }
+function saveGoals(){ try{localStorage.setItem('zqt48-goals',JSON.stringify(goals));}catch(e){} renderGoals(); }
 function firstProp(){ let k=-1; holes.forEach((h,i)=>{ if(k<0&&h.prop&&sol.rho[i]!==null) k=i; }); if(k<0) k=holes.findIndex(h=>h.prop); return k; }
 function updateMeters(){
   $('vHand').innerHTML=(Math.abs(handOmega)/(2*Math.PI)).toFixed(1)+'<small>转/秒</small>';
   const k=firstProp(), pr=k>=0?propRev(k):0;
   $('vProp').innerHTML=pr.toFixed(1)+'<small>转/秒</small>';
-  const MAXB=32, b=$('bar'); b.style.width=Math.min(100,pr/MAXB*100)+'%'; b.classList.toggle('go',pr>=TAKEOFF);
+  const MAXB=48, b=$('bar'); b.style.width=Math.min(100,pr/MAXB*100)+'%'; b.classList.toggle('go',pr>=TAKEOFF);
   $('tline').style.left=$('tlab').style.left=(TAKEOFF/MAXB*100)+'%';
 }
 function routeHTML(){
@@ -408,7 +408,7 @@ function routeHTML(){
   if(tot>=4&&!goals.x4){ goals.x4=true; saveGoals(); }
 }
 const PARTS=[
-  {k:'L',name:'大齿轮',sub:'24 齿 · 红',tool:true},{k:'M',name:'中齿轮',sub:'16 齿 · 蓝',tool:true},{k:'S',name:'小齿轮',sub:'8 齿 · 绿',tool:true},
+  {k:'L',name:'大齿轮',sub:'48 齿 · 红',tool:true},{k:'M',name:'中齿轮',sub:'16 齿 · 蓝',tool:true},{k:'S',name:'小齿轮',sub:'8 齿 · 绿',tool:true},
   {k:'handle',name:'手柄',sub:'只能有 1 个',tool:true},{k:'prop',name:'螺旋桨',sub:'竹蜻蜓的翅膀',tool:true},
   {k:'axle',name:'长轴',sub:'装零件时自动插上',tool:false},{k:'holes',name:'杠杆',sub:'孔的数量',tool:false}];
 function icon2d(c,k){ const x=c.getContext('2d');
@@ -505,7 +505,7 @@ const cloudTex=(()=>{ const c=document.createElement('canvas'); c.width=256; c.h
   [[128,70,46],[80,80,34],[176,82,36],[110,52,32],[150,50,30]].forEach(([a,b,r])=>{ const g=x.createRadialGradient(a,b,0,a,b,r); g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.7,'rgba(255,255,255,.8)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.beginPath(); x.arc(a,b,r,0,7); x.fill(); });
   const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
 const MPU=62.5; // units per meter (1 unit = 1.6 cm, one hole spacing)
-[[2,-38,-60,46],[4.5,44,-80,60],[7,-60,-110,70],[10,30,-70,56],[14,-40,-90,70],[19,55,-120,80],[25,-20,-100,80]].forEach(([m,x,z,s])=>{
+[[2,-38,-60,46],[4.5,44,-80,60],[7,-60,-110,70],[10,30,-70,56],[14,-40,-90,70],[19,55,-120,80],[25,-20,-100,80],[32,40,-90,80],[40,-50,-110,90],[50,20,-100,90],[62,-30,-120,100],[75,50,-110,100],[90,-10,-120,110]].forEach(([m,x,z,s])=>{
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,depthWrite:false,fog:false})); sp.position.set(x,10+m*MPU,z); sp.scale.set(s,s/2,1); scene.add(sp); });
 
 /* ---- materials ---- */
@@ -548,7 +548,7 @@ function gearGeometry(type){
   sh.closePath();
   // cross axle hole
   const cr=new THREE.Path(), A=.2, B=.075; [[-B,-A],[B,-A],[B,-B],[A,-B],[A,B],[B,B],[B,A],[-B,A],[-B,B],[-A,B],[-A,-B],[-B,-B]].forEach(([px,py],n)=>n?cr.lineTo(px,py):cr.moveTo(px,py)); cr.closePath(); sh.holes.push(cr);
-  const nH=type==='L'?6:type==='M'?4:0, hr=type==='L'?.38:.27, rr=type==='L'?1.55:.98;
+  const nH=type==='L'?8:type==='M'?4:0, hr=type==='L'?.75:.27, rr=type==='L'?3.6:.98;
   for(let k=0;k<nH;k++){ const a=k*2*Math.PI/nH+Math.PI/nH, h=new THREE.Path(); h.absarc(rr*Math.cos(a),rr*Math.sin(a),hr,0,Math.PI*2,true); sh.holes.push(h); }
   const g=new THREE.ExtrudeGeometry(sh,{depth:GT-0.08,bevelEnabled:true,bevelThickness:.04,bevelSize:.035,bevelSegments:2,curveSegments:10});
   g.translate(0,0,-(GT-0.08)/2); g.rotateX(-Math.PI/2); g.computeVertexNormals(); return g;
@@ -735,8 +735,8 @@ function frame(now){
     if(wy<=0.25 && f.t>0.3){ // landed on the table
       if(p){ p.position.y=0.1; p.rotation.set(0,0,0); }
       const m=f.max; __sfx&&__sfx.land(m>best); let msg=`飞了 <b>${m.toFixed(1)} 米</b>！`;
-      if(m>best){ best=m; try{localStorage.setItem('zqt-best',String(best));}catch(e){} msg+=' 新纪录！'; }
-      if(m>=3) goals.m3=true; if(m>=8) goals.m8=true; saveGoals();
+      if(m>best){ best=m; try{localStorage.setItem('zqt48-best',String(best));}catch(e){} msg+=' 新纪录！'; }
+      if(m>=10) goals.m10=true; if(m>=30) goals.m30=true; saveGoals();
       say(msg+' 竹蜻蜓马上装回长轴上，可以再摇一次。','good'); f.landed=1.2; f.v=0; tag.style.display='none'; return true;
     }
     tagQ.push({tag,p,f});
@@ -790,7 +790,7 @@ const syncSound=()=>{ $('musicBtn').setAttribute('aria-pressed',String(__sfx.mus
 $('musicBtn').onclick=()=>{ __sfx.init(); __sfx.setMusic(!__sfx.music); syncSound(); };
 $('sfxBtn').onclick=()=>{ __sfx.init(); __sfx.setSfx(!__sfx.sfx); syncSound(); };
 syncSound();
-$('bookBtn').onclick=()=>{ loadBook(); frameView(); setTool('crank'); say('这是书上第 68 页的竹蜻蜓：大带小 ×3，再中带小 ×2，一共 ×6。','good'); };
+$('bookBtn').onclick=()=>{ loadBook(); frameView(); setTool('crank'); say('书上第 68 页的竹蜻蜓结构，大齿轮换成 48 齿：大带小 ×6，再中带小 ×2，一共 ×12。','good'); };
 $('clearBtn').onclick=()=>{ makeHoles(N); flyers=[]; lastPlaced=null; changed(); setTool('L'); say('杠杆清空了。先装一个大齿轮和手柄吧。'); };
 
 buildParts(); renderGoals(); resize(); loadBook(); frameView(); setTool('crank');
